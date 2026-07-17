@@ -1,0 +1,348 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+  FLUTTER_VERSION: '3.19'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: corepack enable pnpm
+
+      - name: Install dependencies (backend)
+        working-directory: ./engineering/backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint (backend)
+        working-directory: ./engineering/backend
+        run: pnpm lint
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies (AI)
+        working-directory: ./engineering/ai
+        run: uv sync --dev
+
+      - name: Run lint (AI)
+        working-directory: ./engineering/ai
+        run: uv run ruff check . && uv run mypy .
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies (mobile)
+        working-directory: ./engineering/mobile
+        run: flutter pub get
+
+      - name: Run analyze (mobile)
+        working-directory: ./engineering/mobile
+        run: flutter analyze
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: corepack enable pnpm
+
+      - name: Install dependencies (backend)
+        working-directory: ./engineering/backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests (backend)
+        working-directory: ./engineering/backend
+        run: pnpm test --coverage
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies (AI)
+        working-directory: ./engineering/ai
+        run: uv sync --dev
+
+      - name: Run tests (AI)
+        working-directory: ./engineering/ai
+        run: uv run pytest --cov --cov-report=xml
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Get dependencies (mobile)
+        working-directory: ./engineering/mobile
+        run: flutter pub get
+
+      - name: Run tests (mobile)
+        working-directory: ./engineering/mobile
+        run: flutter test --coverage
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_ECR }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend
+        working-directory: ./engineering/backend
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/pao/${{ github.event.inputs.environment || 'dev' }}/backend:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/pao/${{ github.event.inputs.environment || 'dev' }}/backend:${{ github.sha }}
+
+      - name: Build and push AI
+        working-directory: ./engineering/ai
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/pao/${{ github.event.inputs.environment || 'dev' }}/ai:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/pao/${{ github.event.inputs.environment || 'dev' }}/ai:${{ github.sha }}
+
+      - name: Build and push mobile
+        working-directory: ./engineering/mobile
+        run: |
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/pao/${{ github.event.inputs.environment || 'dev' }}/mobile:${{ github.sha }} .
+          docker push ${{ steps.login-ecr.outputs.registry }}/pao/${{ github.event.inputs.environment || 'dev' }}/mobile:${{ github.sha }}
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --all-projects --severity-threshold=high
+
+  terraform:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.8.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEPLOY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        working-directory: ./engineering/infrastructure/terraform
+        run: terraform init
+
+      - name: Terraform Format
+        working-directory: ./engineering/infrastructure/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: ./engineering/infrastructure/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./engineering/infrastructure/terraform
+        run: terraform plan -var="environment=dev" -out=tfplan
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: engineering/infrastructure/terraform/tfplan
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security, terraform]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging.pao.ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEPLOY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name pao-staging --region us-east-1
+
+      - name: Deploy via ArgoCD
+        run: |
+          argocd app sync pao-backend-staging
+          argocd app sync pao-ai-staging
+          argocd app sync pao-mobile-staging
+          argocd app wait pao-backend-staging --health
+          argocd app wait pao-ai-staging --health
+          argocd app wait pao-mobile-staging --health
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+
+      - name: Run smoke tests
+        run: |
+          curl -f https://staging.pao.ai/health || exit 1
+          curl -f https://staging.pao.ai/api/v1/ready || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security, terraform]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://pao.ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_DEPLOY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name pao-prod --region us-east-1
+
+      - name: Deploy via ArgoCD
+        run: |
+          argocd app sync pao-backend-prod
+          argocd app sync pao-ai-prod
+          argocd app sync pao-mobile-prod
+          argocd app wait pao-backend-prod --health
+          argocd app wait pao-ai-prod --health
+          argocd app wait pao-mobile-prod --health
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+
+      - name: Run smoke tests
+        run: |
+          curl -f https://pao.ai/health || exit 1
+          curl -f https://pao.ai/api/v1/ready || exit 1
+
+      - name: Notify on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "✅ PAO Production deployment successful!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *PAO Production deployment successful!*\nCommit: ${{ github.sha }}\nDeployed by: ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "❌ PAO Production deployment failed!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *PAO Production deployment failed!*\nCommit: ${{ github.sha }}\nCheck logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
