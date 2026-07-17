@@ -95,7 +95,7 @@ docs/
 
 # Product Documentation
 
-Dokumentasi menggunakan Lumina Product Documentation System (LPDS).
+Dokumentasi menggunakan PADS — PAO Architecture & Documentation System.
 
 Seluruh keputusan produk harus mengacu pada dokumentasi resmi di repository ini.
 
