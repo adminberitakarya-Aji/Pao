@@ -1,0 +1,649 @@
+name: Setup GitHub Project Board
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: 'Project board name'
+        required: true
+        default: 'PAO Phase 1'
+      create_issues:
+        description: 'Create all sprint issues from implementation plan'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+  repository-projects: write
+
+jobs:
+  setup-project:
+    name: Setup Project Board
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Project Board
+        id: setup-project
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_NAME: ${{ github.event.inputs.project_name }}
+        run: |
+          # Create the project (v2)
+          PROJECT_RESPONSE=$(gh api graphql -f query='
+            mutation($name: String!) {
+              createProjectV2(input: {ownerId: "'$(gh api user --jq .node_id)'", title: $name}) {
+                projectV2 {
+                  id
+                  number
+                  title
+                }
+              }
+            }
+          ' -f name="$PROJECT_NAME")
+          
+          PROJECT_ID=$(echo "$PROJECT_RESPONSE" | jq -r '.data.createProjectV2.projectV2.id')
+          PROJECT_NUMBER=$(echo "$PROJECT_RESPONSE" | jq -r '.data.createProjectV2.projectV2.number')
+          
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "project_number=$PROJECT_NUMBER" >> $GITHUB_OUTPUT
+          
+          echo "Created project: $PROJECT_NAME (ID: $PROJECT_ID, Number: $PROJECT_NUMBER)"
+
+      - name: Add Sprint Columns
+        id: add-columns
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_ID: ${{ steps.setup-project.outputs.project_id }}
+        run: |
+          # Get the project's field configuration
+          # Add custom fields for sprint tracking
+          
+          # Create "Sprint" single select field
+          SPRINT_FIELD=$(gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectOptionInput!]!) {
+              createProjectV2Field(input: {
+                projectId: $projectId
+                dataType: SINGLE_SELECT
+                name: $name
+                singleSelectOptions: $options
+              }) {
+                projectV2Field {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="Sprint" -f options='[
+            {"name": "Sprint 0: Infrastructure", "color": "GRAY"},
+            {"name": "Sprint 1: Identity Core", "color": "BLUE"},
+            {"name": "Sprint 2: Identity Co-creation", "color": "BLUE"},
+            {"name": "Sprint 3: Memory Write", "color": "GREEN"},
+            {"name": "Sprint 4: Memory Read", "color": "GREEN"},
+            {"name": "Sprint 5: Conversation Runtime", "color": "PURPLE"},
+            {"name": "Sprint 6: Voice Pipeline", "color": "PURPLE"},
+            {"name": "Sprint 7: Safety Layer", "color": "RED"},
+            {"name": "Sprint 8: Privacy + Mobile", "color": "ORANGE"},
+            {"name": "Sprint 9: Onboarding", "color": "PINK"},
+            {"name": "Sprint 10: Integration Test", "color": "YELLOW"},
+            {"name": "Sprint 11: Beta Launch", "color": "YELLOW"},
+            {"name": "Sprint 12: Hardening", "color": "YELLOW"},
+            {"name": "Backlog", "color": "GRAY"},
+            {"name": "Done", "color": "GREEN"}
+          ]')
+          
+          SPRINT_FIELD_ID=$(echo "$SPRINT_FIELD" | jq -r '.data.createProjectV2Field.projectV2Field.id')
+          echo "sprint_field_id=$SPRINT_FIELD_ID" >> $GITHUB_OUTPUT
+          
+          # Create "Status" single select field
+          STATUS_FIELD=$(gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectOptionInput!]!) {
+              createProjectV2Field(input: {
+                projectId: $projectId
+                dataType: SINGLE_SELECT
+                name: $name
+                singleSelectOptions: $options
+              }) {
+                projectV2Field {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="Status" -f options='[
+            {"name": "Todo", "color": "GRAY"},
+            {"name": "In Progress", "color": "BLUE"},
+            {"name": "In Review", "color": "YELLOW"},
+            {"name": "Blocked", "color": "RED"},
+            {"name": "Done", "color": "GREEN"}
+          ]')
+          
+          STATUS_FIELD_ID=$(echo "$STATUS_FIELD" | jq -r '.data.createProjectV2Field.projectV2Field.id')
+          echo "status_field_id=$STATUS_FIELD_ID" >> $GITHUB_OUTPUT
+          
+          # Create "Epic" single select field
+          EPIC_FIELD=$(gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectOptionInput!]!) {
+              createProjectV2Field(input: {
+                projectId: $projectId
+                dataType: SINGLE_SELECT
+                name: $name
+                singleSelectOptions: $options
+              }) {
+                projectV2Field {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="Epic" -f options='[
+            {"name": "Identity", "color": "BLUE"},
+            {"name": "Memory", "color": "GREEN"},
+            {"name": "Conversation", "color": "PURPLE"},
+            {"name": "Voice", "color": "PURPLE"},
+            {"name": "Safety", "color": "RED"},
+            {"name": "Privacy", "color": "ORANGE"},
+            {"name": "Mobile", "color": "PINK"},
+            {"name": "Platform", "color": "GRAY"},
+            {"name": "Product", "color": "PINK"}
+          ]')
+          
+          EPIC_FIELD_ID=$(echo "$EPIC_FIELD" | jq -r '.data.createProjectV2Field.projectV2Field.id')
+          echo "epic_field_id=$EPIC_FIELD_ID" >> $GITHUB_OUTPUT
+          
+          # Create "Points" number field
+          POINTS_FIELD=$(gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!) {
+              createProjectV2Field(input: {
+                projectId: $projectId
+                dataType: NUMBER
+                name: $name
+              }) {
+                projectV2Field {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="Points")
+          
+          POINTS_FIELD_ID=$(echo "$POINTS_FIELD" | jq -r '.data.createProjectV2Field.projectV2Field.id')
+          echo "points_field_id=$POINTS_FIELD_ID" >> $GITHUB_OUTPUT
+
+      - name: Create Project Views
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_ID: ${{ steps.setup-project.outputs.project_id }}
+          SPRINT_FIELD_ID: ${{ steps.add-columns.outputs.sprint_field_id }}
+          STATUS_FIELD_ID: ${{ steps.add-columns.outputs.status_field_id }}
+        run: |
+          # Create "By Sprint" view (board grouped by Sprint)
+          gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!) {
+              createProjectV2View(input: {
+                projectId: $projectId
+                name: $name
+                layout: BOARD
+                groupByFieldId: "'$SPRINT_FIELD_ID'"
+              }) {
+                projectV2View {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="By Sprint"
+          
+          # Create "By Status" view (board grouped by Status)
+          gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!) {
+              createProjectV2View(input: {
+                projectId: $projectId
+                name: $name
+                layout: BOARD
+                groupByFieldId: "'$STATUS_FIELD_ID'"
+              }) {
+                projectV2View {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="By Status"
+          
+          # Create "By Epic" view (board grouped by Epic)
+          gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!) {
+              createProjectV2View(input: {
+                projectId: $projectId
+                name: $name
+                layout: BOARD
+                groupByFieldId: "'$EPIC_FIELD_ID'"
+              }) {
+                projectV2View {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="By Epic"
+          
+          # Create "Roadmap" view (table)
+          gh api graphql -f query='
+            mutation($projectId: ID!, $name: String!) {
+              createProjectV2View(input: {
+                projectId: $projectId
+                name: $name
+                layout: TABLE
+              }) {
+                projectV2View {
+                  id
+                  name
+                }
+              }
+            }
+          ' -f projectId="$PROJECT_ID" -f name="Roadmap"
+
+      - name: Create Labels
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Sprint labels
+          for i in {0..12}; do
+            gh api repos/:owner/:repo/labels -f name="sprint-$i" -f color="0052CC" -f description="Sprint $i tasks"
+          done
+          
+          # Epic labels
+          gh api repos/:owner/:repo/labels -f name="epic:identity" -f color="0052CC" -f description="Identity Engine"
+          gh api repos/:owner/:repo/labels -f name="epic:memory" -f color="0E8A16" -f description="Memory Engine"
+          gh api repos/:owner/:repo/labels -f name="epic:conversation" -f color="5319E7" -f description="Conversation Runtime"
+          gh api repos/:owner/:repo/labels -f name="epic:voice" -f color="5319E7" -f description="Voice Pipeline"
+          gh api repos/:owner/:repo/labels -f name="epic:safety" -f color="D93F0B" -f description="Safety Layer"
+          gh api repos/:owner/:repo/labels -f name="epic:privacy" -f color="F97583" -f description="Privacy Layer"
+          gh api repos/:owner/:repo/labels -f name="epic:mobile" -f color="FEF2C0" -f description="Mobile App"
+          gh api repos/:owner/:repo/labels -f name="epic:platform" -f color="8B949E" -f description="Platform/Infrastructure"
+          gh api repos/:owner/:repo/labels -f name="epic:product" -f color="FEF2C0" -f description="Product/Design"
+          
+          # Type labels
+          gh api repos/:owner/:repo/labels -f name="type:feature" -f color="0E8A16" -f description="New feature"
+          gh api repos/:owner/:repo/labels -f name="type:bug" -f color="D93F0B" -f description="Bug fix"
+          gh api repos/:owner/:repo/labels -f name="type:tech-debt" -f color="F97583" -f description="Technical debt"
+          gh api repos/:owner/:repo/labels -f name="type:docs" -f color="0052CC" -f description="Documentation"
+          gh api repos/:owner/:repo/labels -f name="type:test" -f color="FEF2C0" -f description="Testing"
+          gh api repos/:owner/:repo/labels -f name="type:security" -f color="D93F0B" -f description="Security"
+          
+          # Priority labels
+          gh api repos/:owner/:repo/labels -f name="priority:p0" -f color="D93F0B" -f description="Critical - blocks release"
+          gh api repos/:owner/:repo/labels -f name="priority:p1" -f color="F97583" -f description="High - must fix this sprint"
+          gh api repos/:owner/:repo/labels -f name="priority:p2" -f color="FEF2C0" -f description="Medium - should fix soon"
+          gh api repos/:owner/:repo/labels -f name="priority:p3" -f color="8B949E" -f description="Low - nice to have"
+          
+          # Component labels
+          gh api repos/:owner/:repo/labels -f name="component:backend" -f color="1D76DB" -f description="Backend services"
+          gh api repos/:owner/:repo/labels -f name="component:ai" -f color="5319E7" -f description="AI services"
+          gh api repos/:owner/:repo/labels -f name="component:mobile" -f color="FEF2C0" -f description="Mobile app"
+          gh api repos/:owner/:repo/labels -f name="component:platform" -f color="8B949E" -f description="Platform/DevOps"
+          gh api repos/:owner/:repo/labels -f name="component:shared" -f color="0052CC" -f description="Shared libraries"
+          
+          # Status labels
+          gh api repos/:owner/:repo/labels -f name="status:ready" -f color="0E8A16" -f description="Ready for sprint"
+          gh api repos/:owner/:repo/labels -f name="status:blocked" -f color="D93F0B" -f description="Blocked by dependency"
+          gh api repos/:owner/:repo/labels -f name="status:in-progress" -f color="0052CC" -f description="Actively being worked on"
+          gh api repos/:owner/:repo/labels -f name="status:in-review" -f color="F97583" -f description="In code review"
+          gh api repos/:owner/:repo/labels -f name="status:done" -f color="0E8A16" -f description="Completed and deployed"
+          
+          echo "All labels created successfully"
+
+      - name: Create Milestones
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # M1: Identity Engine Core
+          gh api repos/:owner/:repo/milestones -f title="M1: Identity Engine Core" -f description="Personality fingerprint stable, basic trait system operational" -f due_on="2025-01-31T23:59:59Z"
+          
+          # M2: Identity Co-creation
+          gh api repos/:owner/:repo/milestones -f title="M2: Identity Co-creation" -f description="User-facing co-creation flow: sliders, presets, preview, validation" -f due_on="2025-02-14T23:59:59Z"
+          
+          # M3: Memory Engine Write Path
+          gh api repos/:owner/:repo/milestones -f title="M3: Memory Engine Write Path" -f description="All 6 memory types writable with consolidation pipeline" -f due_on="2025-02-28T23:59:59Z"
+          
+          # M4: Memory Engine Read Path + Recall
+          gh api repos/:owner/:repo/milestones -f title="M4: Memory Engine Read Path + Recall" -f description="Cross-modal recall > 90%, user CRUD operations complete" -f due_on="2025-03-14T23:59:59Z"
+          
+          # M5: Conversation Runtime
+          gh api repos/:owner/:repo/milestones -f title="M5: Conversation Runtime" -f description="30-day continuous context, < 500ms latency, memory relevance > 90%" -f due_on="2025-03-28T23:59:59Z"
+          
+          # M6: Voice Pipeline
+          gh api repos/:owner/:repo/milestones -f title="M6: Voice Pipeline" -f description="< 500ms E2E latency, natural turn-taking, voice identity match > 95%" -f due_on="2025-04-11T23:59:59Z"
+          
+          # M7: Safety Layer + Reality Anchor
+          gh api repos/:owner/:repo/milestones -f title="M7: Safety Layer + Reality Anchor" -f description="Crisis detection 100% recall, Reality Anchor 100% injection" -f due_on="2025-04-25T23:59:59Z"
+          
+          # M8: Privacy Layer + Mobile App Shell
+          gh api repos/:owner/:repo/milestones -f title="M8: Privacy Layer + Mobile App Shell" -f description="Zero-knowledge memory, export/delete verified, Flutter app with offline-first" -f due_on="2025-05-09T23:59:59Z"
+          
+          # M9: Onboarding Flow + Character Studio
+          gh api repos/:owner/:repo/milestones -f title="M9: Onboarding Flow + Character Studio" -f description="Onboarding > 75% completion, Character Studio polished" -f due_on="2025-05-23T23:59:59Z"
+          
+          # M10: Integration Testing + Beta Prep
+          gh api repos/:owner/:repo/milestones -f title="M10: Integration Testing + Beta Prep" -f description="All systems integrated, beta-ready build" -f due_on="2025-06-06T23:59:59Z"
+          
+          # M11: Beta Launch
+          gh api repos/:owner/:repo/milestones -f title="M11: Beta Launch" -f description="1000 beta users active, Relationship Score > 7.0" -f due_on="2025-06-20T23:59:59Z"
+          
+          # M12: M3-M4 Completion + M5 Hardening
+          gh api repos/:owner/:repo/milestones -f title="M12: M3-M4 Completion + M5 Hardening" -f description="Conversation Runtime M3, Voice M4, Safety/Privacy M5 complete" -f due_on="2025-07-04T23:59:59Z"
+          
+          echo "All milestones created successfully"
+
+      - name: Create Sprint 0 Issues
+        if: ${{ github.event.inputs.create_issues == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_ID: ${{ steps.setup-project.outputs.project_id }}
+          SPRINT_FIELD_ID: ${{ steps.add-columns.outputs.sprint_field_id }}
+          STATUS_FIELD_ID: ${{ steps.add-columns.outputs.status_field_id }}
+          EPIC_FIELD_ID: ${{ steps.add-columns.outputs.epic_field_id }}
+          POINTS_FIELD_ID: ${{ steps.add-columns.outputs.points_field_id }}
+        run: |
+          # Function to create issue and add to project
+          create_issue() {
+            local title="$1"
+            local body="$2"
+            local labels="$3"
+            local milestone="$4"
+            local points="$5"
+            local epic="$6"
+            
+            # Create issue
+            ISSUE_RESPONSE=$(gh api repos/:owner/:repo/issues -f title="$title" -f body="$body" -f labels="[$labels]" -f milestone="$milestone")
+            ISSUE_NUMBER=$(echo "$ISSUE_RESPONSE" | jq -r '.number')
+            ISSUE_ID=$(echo "$ISSUE_RESPONSE" | jq -r '.node_id')
+            
+            # Add to project
+            gh api graphql -f query='
+              mutation($projectId: ID!, $contentId: ID!) {
+                addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                  item {
+                    id
+                  }
+                }
+              }
+            ' -f projectId="$PROJECT_ID" -f contentId="$ISSUE_ID"
+            
+            # Set Sprint field
+            gh api graphql -f query='
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: {text: $value}
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            ' -f projectId="$PROJECT_ID" -f itemId="$ISSUE_ID" -f fieldId="$SPRINT_FIELD_ID" -f value="Sprint 0: Infrastructure"
+            
+            # Set Status field
+            gh api graphql -f query='
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: {singleSelectOptionId: $value}
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            ' -f projectId="$PROJECT_ID" -f itemId="$ISSUE_ID" -f fieldId="$STATUS_FIELD_ID" -f value="Todo"
+            
+            # Set Epic field
+            if [ -n "$epic" ]; then
+              # Get the option ID for the epic
+              EPIC_OPTION_ID=$(gh api graphql -f query='
+                query($projectId: ID!, $fieldName: String!, $optionName: String!) {
+                  node(id: $projectId) {
+                    ... on ProjectV2 {
+                      fields(first: 20) {
+                        nodes {
+                          ... on ProjectV2SingleSelectField {
+                            name
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ' -f projectId="$PROJECT_ID" -f fieldName="Epic" | jq -r ".data.node.fields.nodes[] | select(.name==\"Epic\") | .options[] | select(.name==\"$epic\") | .id")
+              
+              if [ -n "$EPIC_OPTION_ID" ]; then
+                gh api graphql -f query='
+                  mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: String!) {
+                    updateProjectV2ItemFieldValue(input: {
+                      projectId: $projectId
+                      itemId: $itemId
+                      fieldId: $fieldId
+                      value: {singleSelectOptionId: $value}
+                    }) {
+                      projectV2Item {
+                        id
+                      }
+                    }
+                  }
+                ' -f projectId="$PROJECT_ID" -f itemId="$ISSUE_ID" -f fieldId="$EPIC_FIELD_ID" -f value="$EPIC_OPTION_ID"
+              fi
+            fi
+            
+            # Set Points field
+            if [ -n "$points" ]; then
+              gh api graphql -f query='
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Float!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: {number: $value}
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              ' -f projectId="$PROJECT_ID" -f itemId="$ISSUE_ID" -f fieldId="$POINTS_FIELD_ID" -f value="$points"
+            fi
+            
+            echo "Created issue #$ISSUE_NUMBER: $title"
+          }
+          
+          # Sprint 0 Issues
+          create_issue "INFRA-01: Provision dev EKS cluster (us-east-1) via Terraform" \
+            "Provision development EKS cluster in us-east-1 using Terraform modules.\n\n**Acceptance Criteria:**\n- [ ] terraform apply succeeds for dev environment\n- [ ] Cluster accessible via kubectl\n- [ ] Node groups healthy\n- [ ] IRSA configured" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            5 \
+            "Platform"
+          
+          create_issue "INFRA-02: Provision RDS PostgreSQL (dev) + pgvector" \
+            "Provision RDS PostgreSQL 16 with pgvector extension for development.\n\n**Acceptance Criteria:**\n- [ ] RDS instance running\n- [ ] pgvector extension enabled\n- [ ] Security groups configured\n- [ ] Connection from EKS verified" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-03: Provision ElastiCache Redis (dev)" \
+            "Provision ElastiCache Redis 7 cluster for development.\n\n**Acceptance Criteria:**\n- [ ] Redis cluster running\n- [ ] Multi-AZ enabled\n- [ ] Security groups configured\n- [ ] Connection from EKS verified" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            2 \
+            "Platform"
+          
+          create_issue "INFRA-04: Provision Qdrant vector DB (dev)" \
+            "Provision Qdrant vector database for development.\n\n**Acceptance Criteria:**\n- [ ] Qdrant running on EKS or managed\n- [ ] Collections configured\n- [ ] Connection from backend verified" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-05: Provision Kafka (Redpanda) cluster (dev)" \
+            "Provision Redpanda/Kafka cluster for development.\n\n**Acceptance Criteria:**\n- [ ] Redpanda cluster running\n- [ ] Topics configured\n- [ ] Connection from services verified" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-06: Setup Vault for secrets management" \
+            "Setup HashiCorp Vault for secrets management in development.\n\n**Acceptance Criteria:**\n- [ ] Vault running\n- [ ] Auth configured (Kubernetes auth)\n- [ ] Secrets engines enabled\n- [ ] Policies defined" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-07: Setup Datadog/OpenTelemetry observability" \
+            "Setup Datadog and OpenTelemetry for observability.\n\n**Acceptance Criteria:**\n- [ ] Datadog agent deployed\n- [ ] OTel collector configured\n- [ ] Traces/metrics/logs flowing\n- [ ] Dashboards created" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-08: GitHub Actions CI pipeline (lint, test, build)" \
+            "Setup GitHub Actions CI pipeline with lint, test, and build stages.\n\n**Acceptance Criteria:**\n- [ ] Pipeline runs on PR\n- [ ] Lint passes for all components\n- [ ] Tests pass with coverage\n- [ ] Docker images built and pushed to ECR" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            5 \
+            "Platform"
+          
+          create_issue "INFRA-09: ArgoCD GitOps setup for dev cluster" \
+            "Setup ArgoCD for GitOps deployments to dev cluster.\n\n**Acceptance Criteria:**\n- [ ] ArgoCD installed\n- [ ] Applications configured\n- [ ] Auto-sync enabled\n- [ ] RBAC configured" \
+            "sprint-0,epic:platform,type:feature,priority:p0,component:platform" \
+            "M1: Identity Engine Core" \
+            5 \
+            "Platform"
+          
+          create_issue "INFRA-10: Shared TypeScript library (@pao/shared) published" \
+            "Create and publish shared TypeScript library for backend.\n\n**Acceptance Criteria:**\n- [ ] Library created with shared types/utils\n- [ ] Published to npm/GitHub Packages\n- [ ] Consumed by backend services\n- [ ] Versioning strategy defined" \
+            "sprint-0,epic:platform,type:feature,priority:p1,component:shared" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-11: Shared Python library (pao-shared) published" \
+            "Create and publish shared Python library for AI services.\n\n**Acceptance Criteria:**\n- [ ] Library created with shared models/utils\n- [ ] Published to PyPI/GitHub Packages\n- [ ] Consumed by AI services\n- [ ] Versioning strategy defined" \
+            "sprint-0,epic:platform,type:feature,priority:p1,component:shared" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-12: Flutter project initialized with melos" \
+            "Initialize Flutter project with melos for monorepo management.\n\n**Acceptance Criteria:**\n- [ ] Flutter project created\n- [ ] Melos configured\n- [ ] Packages organized\n- [ ] CI passes" \
+            "sprint-0,epic:mobile,type:feature,priority:p1,component:mobile" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Mobile"
+          
+          create_issue "INFRA-13: Protobuf schema registry (buf) configured" \
+            "Configure buf for Protobuf schema registry.\n\n**Acceptance Criteria:**\n- [ ] buf.yaml configured\n- [ ] Schemas defined\n- [ ] Registry connected\n- [ ] Breaking change detection enabled" \
+            "sprint-0,epic:platform,type:feature,priority:p1,component:shared" \
+            "M1: Identity Engine Core" \
+            3 \
+            "Platform"
+          
+          create_issue "INFRA-14: Development environment documentation" \
+            "Document development environment setup.\n\n**Acceptance Criteria:**\n- [ ] Local dev setup documented\n- [ ] Docker-compose for local services\n- [ ] IDE configuration shared\n- [ ] Troubleshooting guide" \
+            "sprint-0,epic:platform,type:docs,priority:p2,component:platform" \
+            "M1: Identity Engine Core" \
+            2 \
+            "Platform"
+          
+          echo "Sprint 0 issues created successfully"
+
+  setup-project-manual:
+    name: Manual Setup Instructions
+    runs-on: ubuntu-latest
+    if: false
+    steps:
+      - name: Print Manual Setup Instructions
+        run: |
+          echo "============================================"
+          echo "MANUAL GITHUB PROJECT BOARD SETUP GUIDE"
+          echo "============================================"
+          echo ""
+          echo "Since GitHub CLI (gh) is not available in this environment,"
+          echo "here are the manual steps to set up the project board:"
+          echo ""
+          echo "1. CREATE PROJECT BOARD:"
+          echo "   - Go to GitHub repo → Projects → New project"
+          echo "   - Select 'Board' template"
+          echo "   - Name: 'PAO Phase 1'"
+          echo ""
+          echo "2. ADD CUSTOM FIELDS:"
+          echo "   - Click '+' → New field → Single select"
+          echo "   - Field 1: 'Sprint' with options:"
+          echo "     * Sprint 0: Infrastructure (Gray)"
+          echo "     * Sprint 1: Identity Core (Blue)"
+          echo "     * Sprint 2: Identity Co-creation (Blue)"
+          echo "     * Sprint 3: Memory Write (Green)"
+          echo "     * Sprint 4: Memory Read (Green)"
+          echo "     * Sprint 5: Conversation Runtime (Purple)"
+          echo "     * Sprint 6: Voice Pipeline (Purple)"
+          echo "     * Sprint 7: Safety Layer (Red)"
+          echo "     * Sprint 8: Privacy + Mobile (Orange)"
+          echo "     * Sprint 9: Onboarding (Pink)"
+          echo "     * Sprint 10: Integration Test (Yellow)"
+          echo "     * Sprint 11: Beta Launch (Yellow)"
+          echo "     * Sprint 12: Hardening (Yellow)"
+          echo "     * Backlog (Gray)"
+          echo "     * Done (Green)"
+          echo "   - Field 2: 'Status' with options: Todo, In Progress, In Review, Blocked, Done"
+          echo "   - Field 3: 'Epic' with options: Identity, Memory, Conversation, Voice, Safety, Privacy, Mobile, Platform, Product"
+          echo "   - Field 4: 'Points' (Number field)"
+          echo ""
+          echo "3. CREATE VIEWS:"
+          echo "   - View 1: 'By Sprint' (Board, grouped by Sprint)"
+          echo "   - View 2: 'By Status' (Board, grouped by Status)"
+          echo "   - View 3: 'By Epic' (Board, grouped by Epic)"
+          echo "   - View 4: 'Roadmap' (Table view)"
+          echo ""
+          echo "4. CREATE LABELS (Settings → Labels):"
+          echo "   Sprint labels: sprint-0 through sprint-12"
+          echo "   Epic labels: epic:identity, epic:memory, epic:conversation, epic:voice, epic:safety, epic:privacy, epic:mobile, epic:platform, epic:product"
+          echo "   Type labels: type:feature, type:bug, type:tech-debt, type:docs, type:test, type:security"
+          echo "   Priority labels: priority:p0, priority:p1, priority:p2, priority:p3"
+          echo "   Component labels: component:backend, component:ai, component:mobile, component:platform, component:shared"
+          echo "   Status labels: status:ready, status:blocked, status:in-progress, status:in-review, status:done"
+          echo ""
+          echo "5. CREATE MILESTONES (Issues → Milestones):"
+          echo "   M1: Identity Engine Core (2025-01-31)"
+          echo "   M2: Identity Co-creation (2025-02-14)"
+          echo "   M3: Memory Engine Write Path (2025-02-28)"
+          echo "   M4: Memory Engine Read Path + Recall (2025-03-14)"
+          echo "   M5: Conversation Runtime (2025-03-28)"
+          echo "   M6: Voice Pipeline (2025-04-11)"
+          echo "   M7: Safety Layer + Reality Anchor (2025-04-25)"
+          echo "   M8: Privacy Layer + Mobile App Shell (2025-05-09)"
+          echo "   M9: Onboarding Flow + Character Studio (2025-05-23)"
+          echo "   M10: Integration Testing + Beta Prep (2025-06-06)"
+          echo "   M11: Beta Launch (2025-06-20)"
+          echo "   M12: M3-M4 Completion + M5 Hardening (2025-07-04)"
+          echo ""
+          echo "6. CREATE ISSUES:"
+          echo "   Use the implementation plan (docs/04-engineering/460-implementation-plan.md)"
+          echo "   to create issues for each story in each sprint."
+          echo "   Assign labels, milestones, and add to project board."
+          echo ""
+          echo "7. AUTOMATION (Optional):"
+          echo "   - Enable 'Auto-add to project' for new issues with specific labels"
+          echo "   - Set up GitHub Actions to move cards on status change"
+          echo "============================================"
