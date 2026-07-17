@@ -1,0 +1,157 @@
+PAO License
+Version 1.0
+
+Copyright (c) 2025 PAO Team
+
+This license governs the use of PAO — the AI Life Companion Platform —
+including all source code, documentation, models, and related materials
+(collectively, "the Software").
+
+---
+
+## 1. Grant of Rights
+
+Subject to the terms of this License, PAO Team grants you a worldwide,
+royalty-free, non-exclusive license to:
+
+- Use the Software for personal, non-commercial purposes
+- Modify the Software for personal, non-commercial purposes
+- Distribute unmodified copies of the Software for personal, non-commercial purposes
+- Contribute modifications back to the project under this License
+
+---
+
+## 2. Commercial Use Restriction
+
+Commercial use of the Software requires a separate commercial license
+from PAO Team. "Commercial use" includes but is not limited to:
+
+- Offering the Software as a service (SaaS, PaaS, API)
+- Integrating the Software into commercial products
+- Using the Software for revenue-generating activities
+- White-labeling or reselling the Software
+
+Contact licensing@pao.ai for commercial licensing inquiries.
+
+---
+
+## 3. Attribution
+
+Any distribution or derivative work must include:
+
+- This License in full
+- Copyright notice: "Copyright (c) 2025 PAO Team"
+- Attribution: "Powered by PAO — AI Life Companion Platform"
+- Link to the project repository
+
+---
+
+## 4. Safety & Ethics Requirements
+
+Any use, modification, or distribution of the Software MUST comply with
+the PAO Constitutional Principles (FOUNDATION.md):
+
+### Mandatory Requirements
+- **Reality Anchor**: Software must clearly identify itself as AI
+- **No Human Replacement**: Must not claim to replace human relationships
+- **No Emotional Manipulation**: Must not exploit user emotions
+- **No Dependency Encouragement**: Must not design for addictive use
+- **Grief Policy**: Memorial companions require ethical safeguards
+- **Privacy by Design**: User data ownership and minimal collection
+
+### Prohibited Uses
+- Military or weapons applications
+- Surveillance or tracking systems
+- Psychological manipulation or therapy replacement
+- Exploitation of vulnerable populations (children, elderly, grief-stricken)
+- Any use violating applicable laws or regulations
+
+---
+
+## 5. Data & Privacy
+
+- User data belongs to the user — this is non-negotiable
+- Any deployment must implement end-to-end encryption for sensitive data
+- Right to data export and deletion must be supported
+- No telemetry or analytics without explicit, informed consent
+- Compliance with GDPR, CCPA, and local privacy laws required
+
+---
+
+## 6. AI Model Usage
+
+If the Software incorporates or interacts with third-party AI models:
+
+- You are responsible for compliance with those models' licenses
+- PAO Team makes no warranties about third-party model outputs
+- Safety filters and guardrails must be maintained
+- Hallucination mitigation for memory-critical operations required
+
+---
+
+## 7. Disclaimer of Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+## 8. Termination
+
+This License terminates automatically if you breach any term.
+Upon termination, you must cease all use and destroy all copies.
+
+Commercial license violations may result in legal action.
+
+---
+
+## 9. Governing Law
+
+This License shall be governed by the laws of the Republic of Indonesia,
+without regard to conflict of law principles.
+
+Disputes shall be resolved through good-faith negotiation, then
+mediation in Jakarta, then binding arbitration under BANI rules.
+
+---
+
+## 10. Contributions
+
+By contributing to PAO, you agree that your contributions will be
+licensed under this same License, and you grant PAO Team the right
+to sublicense contributions under commercial licenses.
+
+---
+
+## 11. Trademarks
+
+"PAO", the PAO logo, "Lumina", and related marks are trademarks
+of PAO Team. This License does not grant trademark rights.
+
+Use of trademarks requires separate written permission.
+
+---
+
+## 12. Severability
+
+If any provision is found unenforceable, the remainder remains in effect.
+
+---
+
+## Contact
+
+- Licensing: licensing@pao.ai
+- Safety: safety@pao.ai
+- Security: security@pao.ai
+- General: hello@pao.ai
+
+---
+
+*This License embodies PAO's commitment to building trustworthy AI
+Companions that strengthen — never replace — human connection.*

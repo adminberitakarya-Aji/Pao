@@ -1,0 +1,37 @@
+{
+  "name": "@pao/backend",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "generate": "turbo run generate",
+    "proto:generate": "turbo run proto:generate",
+    "db:migrate": "turbo run db:migrate",
+    "db:seed": "turbo run db:seed",
+    "clean": "turbo run clean && rm -rf node_modules/.cache",
+    "format": "prettier --write \"**/*.{ts,json,md,yaml,yml}\"",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "prettier": "^3.2.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "vitest": "^1.4.0",
+    "@vitest/coverage-v8": "^1.4.0",
+    "buf": "^1.28.0",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

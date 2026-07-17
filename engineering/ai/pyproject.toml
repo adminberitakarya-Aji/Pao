@@ -1,0 +1,171 @@
+[project]
+name = "pao-ai"
+version = "1.0.0"
+description = "PAO AI/ML Services"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "PAO Engineering", email = "engineering@pao.app"}
+]
+maintainers = [
+    {name = "PAO AI Team", email = "ai@pao.app"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    # Core ML
+    "torch>=2.2.0",
+    "transformers>=4.38.0",
+    "accelerate>=0.27.0",
+    "sentence-transformers>=3.0.0",
+    
+    # Model Serving
+    "vllm>=0.3.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    
+    # Vector/Graph DB
+    "qdrant-client>=1.9.0",
+    "kuzu>=0.2.0",
+    
+    # Data Processing
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
+    "polars>=0.19.0",
+    
+    # Observability
+    "opentelemetry-api>=1.22.0",
+    "opentelemetry-sdk>=1.22.0",
+    "opentelemetry-exporter-otlp>=1.22.0",
+    "prometheus-client>=0.19.0",
+    "structlog>=24.1.0",
+    
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+    "click>=8.1.7",
+    "rich>=13.7.0",
+    "tenacity>=8.2.0",
+    "httpx>=0.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+    "ipython>=8.20.0",
+    "jupyter>=1.0.0",
+]
+training = [
+    "deepspeed>=0.12.0",
+    "peft>=0.8.0",
+    "trl>=0.8.0",
+    "wandb>=0.16.0",
+    "tensorboard>=2.15.0",
+]
+evaluation = [
+    "datasets>=2.16.0",
+    "evaluate>=0.4.0",
+    "rouge-score>=0.1.2",
+    "bert-score>=0.3.13",
+    "nltk>=3.8.1",
+]
+voice = [
+    "TTS>=0.22.0",
+    "whisper>=20231117",
+    "librosa>=0.10.2",
+    "soundfile>=0.12.1",
+]
+
+[tool.uv]
+workspace = true
+members = [
+    "services/*",
+    "shared/*",
+]
+
+[tool.uv.sources]
+pao-shared = {workspace = true, editable = true}
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "T20", # flake8-print
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # function call in default argument
+]
+per-file-ignores = {
+    "tests/*": ["S101", "S106"],
+}
+format = {quote-style = "double", indent-style = "space"}
+
+[tool.ruff.lint.isort]
+known-first-party = ["pao"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+show_error_codes = true
+pretty = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+    "gpu: Tests requiring GPU",
+]
+
+[tool.coverage.run]
+source = ["pao"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

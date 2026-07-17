@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: pao-system
+
+resources:
+  - namespace.yaml
+  - network-policies.yaml
+  - resource-quotas.yaml
+  - limit-ranges.yaml
+  - service-accounts.yaml
+  - rbac.yaml
+
+commonLabels:
+  app.kubernetes.io/name: pao
+  app.kubernetes.io/part-of: pao-platform
+  app.kubernetes.io/managed-by: argocd
+
+configMapGenerator:
+  - name: pao-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+
+secretGenerator:
+  - name: pao-secrets
+    behavior: merge
+    envs:
+      - .env.secrets
+
+patchesStrategicMerge:
+  - patches/istio-sidecar-injection.yaml
+  - patches/pod-disruption-budget.yaml
+  - patches/priority-class.yaml
