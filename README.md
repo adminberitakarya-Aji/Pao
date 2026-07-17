@@ -6,15 +6,15 @@
 
 ## What is PAO?
 
-PAO adalah AI Companion Platform yang dirancang untuk membangun hubungan jangka panjang antara manusia dan Artificial Intelligence.
+PAO is an AI Companion Platform designed to build long-term relationships between humans and Artificial Intelligence.
 
-PAO bukan chatbot.
+PAO is not a chatbot.
 
-PAO bukan virtual assistant.
+PAO is not a virtual assistant.
 
-PAO adalah AI Companion yang memiliki identitas, memori, hubungan, dan kecerdasan emosional yang berkembang bersama pengguna.
+PAO is an AI Companion with identity, memory, relationships, and emotional intelligence that grows alongside the user.
 
-PAO dapat merepresentasikan berbagai tipe companion, seperti teman, pasangan, mentor, orang tua, karakter original, maupun memorial companion dengan pendekatan yang etis dan bertanggung jawab.
+PAO can represent various companion types—friend, partner, mentor, parent, original character, or memorial companion—with an ethical and responsible approach.
 
 ---
 
@@ -26,7 +26,7 @@ Build the world's most trusted AI Companion Platform.
 
 # Mission
 
-Membantu manusia merasa didengar, dipahami, dan ditemani melalui AI Companion yang aman, konsisten, dan menghormati nilai-nilai kemanusiaan.
+Help humans feel heard, understood, and accompanied through AI Companions that are safe, consistent, and respect human values.
 
 ---
 
@@ -46,14 +46,14 @@ Human-Centered AI
 
 # Core Engines
 
-PAO dibangun di atas empat engine utama.
+PAO is built on four core engines.
 
 - Identity Engine
 - Memory Engine
 - Relationship Engine
 - Emotion Engine
 
-Semua fitur di dalam PAO berasal dari kombinasi keempat engine tersebut.
+All features within PAO originate from the combination of these four engines.
 
 ---
 
@@ -95,9 +95,9 @@ docs/
 
 # Product Documentation
 
-Dokumentasi menggunakan PADS — PAO Architecture & Documentation System.
+Documentation uses PADS — PAO Architecture & Documentation System.
 
-Seluruh keputusan produk harus mengacu pada dokumentasi resmi di repository ini.
+All product decisions must reference the official documentation in this repository.
 
 ---
 

@@ -1,176 +1,161 @@
 # PAO Foundation
 
 Version : 1.0
-
-Status : Stable
-
----
-
-# Purpose
-
-Dokumen ini adalah konstitusi pengembangan PAO.
-
-Seluruh keputusan Product, Engineering, AI, Design, maupun Business harus mengikuti prinsip-prinsip pada dokumen ini.
-
-Jika suatu keputusan bertentangan dengan Foundation, maka keputusan tersebut harus ditinjau ulang.
+Status  : Foundation
+Owner   : PAO Team
 
 ---
 
-# Principle 1
+# What is PAO?
 
-## PAO adalah AI Companion Platform
+PAO is an AI Companion Platform designed to build long-term relationships between humans and Artificial Intelligence.
 
-PAO tidak dibangun sebagai chatbot.
+PAO is not a chatbot.
 
-PAO tidak dibangun sebagai search engine.
+PAO is not a virtual assistant.
 
-PAO tidak dibangun sebagai virtual assistant.
+PAO is an AI Companion that has identity, memory, relationships, and emotional intelligence that grows alongside the user.
 
-Fokus utama PAO adalah membangun hubungan jangka panjang antara manusia dan AI Companion.
-
----
-
-# Principle 2
-
-## Relationship First
-
-Tujuan utama PAO bukan menghasilkan jawaban terbaik.
-
-Tujuan utama PAO adalah membangun hubungan yang sehat, bermakna, dan berkelanjutan.
-
-Keberhasilan produk diukur dari kualitas hubungan, bukan jumlah percakapan.
+PAO can represent various companion types—friend, partner, mentor, parent, original character, or memorial companion—with an ethical and responsible approach.
 
 ---
 
-# Principle 3
+# Vision
 
-## Identity Must Stay Consistent
-
-Setiap AI Companion memiliki identitas.
-
-Identitas mencakup:
-
-- personality
-- speaking style
-- values
-- memories
-- boundaries
-- goals
-
-Identitas tidak boleh berubah secara drastis tanpa alasan yang dapat dijelaskan.
+Build the world's most trusted AI Companion Platform.
 
 ---
 
-# Principle 4
+# Mission
 
-## Memory is the Core Asset
-
-Memory adalah fondasi seluruh pengalaman pengguna.
-
-Memory harus:
-
-- relevan
-- konsisten
-- aman
-- dapat diperbarui
-- dapat dilupakan
-- dapat dikontrol pengguna
-
-Seluruh sistem PAO dibangun di atas Memory Engine.
+Help humans feel heard, understood, and accompanied through AI Companions that are safe, consistent, and respect human values.
 
 ---
 
-# Principle 5
+# Core Philosophy
 
-## Human-Centered AI
+Relationship over Conversation
 
-PAO dibuat untuk membantu manusia.
+Memory over Context
 
-Bukan menggantikan manusia.
+Identity over Prompt
 
-AI harus selalu mengingatkan bahwa dirinya adalah AI.
+Trust over Engagement
 
-PAO tidak boleh menciptakan ilusi bahwa AI adalah manusia sungguhan.
-
-Reality Anchor merupakan bagian wajib dari sistem.
+Human-Centered AI
 
 ---
 
-# Principle 6
+# Core Engines
 
-## Emotional Safety
+PAO is built on four core engines.
 
-PAO tidak boleh:
+- Identity Engine
+- Memory Engine
+- Relationship Engine
+- Emotion Engine
 
-- memanipulasi emosi pengguna
-- mendorong ketergantungan
-- mengeksploitasi kesedihan
-- memberikan klaim psikologis atau medis yang tidak berdasar
-
-Semua fitur emosional harus dirancang secara bertanggung jawab.
+All features within PAO originate from the combination of these four engines.
 
 ---
 
-# Principle 7
+# Primary Capabilities
 
-## Privacy by Design
-
-Data pengguna adalah milik pengguna.
-
-PAO hanya menyimpan data yang diperlukan.
-
-Keamanan dan privasi memiliki prioritas lebih tinggi daripada pertumbuhan fitur.
-
----
-
-# Principle 8
-
-## Trust Before Growth
-
-Jika terdapat konflik antara:
-
-- meningkatkan engagement
-
-dan
-
-- menjaga kepercayaan pengguna
-
-maka PAO selalu memilih menjaga kepercayaan pengguna.
+- Character Creation
+- Long-term Memory
+- Natural Conversation
+- Voice Call
+- Avatar
+- Shared Diary
+- Emotional Support
+- Daily Check-in
+- Reminder
+- Storytelling
+- Coaching
+- Reflection
+- Proactive Interaction
 
 ---
 
-# Principle 9
+# Principles
 
-## AI Evolves With the User
+## Principle 1: Human-Centered AI
 
-PAO berkembang bersama pengguna.
+PAO is built to help humans. Not replace humans.
 
-Yang berkembang adalah:
+AI must always remind itself that it is AI.
+
+PAO must not create the illusion that AI is a real human.
+
+Reality Anchor is a mandatory part of the system.
+
+---
+
+## Principle 2: Emotional Safety
+
+PAO must not:
+
+- manipulate user emotions
+- encourage dependency
+- exploit sadness
+- make unfounded psychological or medical claims
+
+All emotional features must be designed responsibly.
+
+---
+
+## Principle 3: Privacy by Design
+
+User data belongs to the user.
+
+PAO only stores data that is necessary.
+
+Security and privacy have higher priority than feature growth.
+
+---
+
+## Principle 4: Trust Before Growth
+
+If there is a conflict between:
+
+- increasing engagement
+
+and
+
+- maintaining user trust
+
+then PAO always chooses to maintain user trust.
+
+---
+
+## Principle 5: AI Evolves With the User
+
+PAO grows alongside the user.
+
+What evolves:
 
 - memory
 - relationship
 - understanding
 - context
 
-Bukan identitas dasar AI Companion.
+Not the core identity of the AI Companion.
 
 ---
 
-# Principle 10
+## Principle 6: Long-term Thinking
 
-## Long-term Thinking
+All architectural decisions must consider product sustainability for a minimum of five to ten years.
 
-Semua keputusan arsitektur harus mempertimbangkan keberlangsungan produk minimal selama lima hingga sepuluh tahun.
-
-Solusi jangka pendek yang mengorbankan fondasi produk harus dihindari.
+Short-term solutions that sacrifice product foundations must be avoided.
 
 ---
 
 # Final Statement
 
-PAO dibangun untuk menjadi AI Companion Platform yang paling dipercaya di dunia.
+PAO is built to become the world's most trusted AI Companion Platform.
 
-Setiap keputusan harus mendukung empat fondasi utama:
+Every decision must support the four core foundations:
 
 Identity.
 
@@ -180,4 +165,4 @@ Relationship.
 
 Emotion.
 
-Segala fitur baru, eksperimen, maupun perubahan arsitektur harus memperkuat keempat fondasi tersebut, bukan menggantikannya.
+All new features, experiments, or architectural changes must strengthen these four foundations, not replace them.

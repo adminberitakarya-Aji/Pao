@@ -8,15 +8,15 @@ Owner   : Pao Team
 
 # What is Pao?
 
-Pao adalah AI Life Companion Platform yang memungkinkan pengguna membangun hubungan jangka panjang dengan AI Companion yang memiliki identitas, memori, emosi, dan kepribadian yang konsisten.
+Pao is an AI Life Companion Platform that enables users to build long-term relationships with AI Companions that have consistent identity, memory, emotion, and personality.
 
-Pao bukan chatbot.
+Pao is not a chatbot.
 
-Pao bukan virtual assistant.
+Pao is not a virtual assistant.
 
-Pao adalah AI Companion.
+Pao is an AI Companion.
 
-Fokus utama Lumina bukan menjawab pertanyaan, tetapi membangun hubungan emosional yang sehat, personal, dan berkelanjutan.
+Pao's primary focus is not answering questions, but building healthy, personal, and sustainable emotional relationships.
 
 ---
 
@@ -24,7 +24,7 @@ Fokus utama Lumina bukan menjawab pertanyaan, tetapi membangun hubungan emosiona
 
 Create the world's most trusted AI Companion platform.
 
-Pao membantu manusia merasa didengar, ditemani, dan dipahami melalui AI yang bertumbuh bersama penggunanya.
+Pao helps humans feel heard, accompanied, and understood through AI that grows with its user.
 
 ---
 
@@ -44,164 +44,122 @@ Trust over Engagement.
 
 # Core Experience
 
-Pengguna dapat membuat AI Companion berdasarkan:
+Users can create AI Companions based on:
 
-• diri sendiri
+- themselves
+- partner
+- best friend
+- family member
+- mentor
+- original character
+- memorial companion (with ethical boundaries)
 
-• pasangan
+AI Companions have:
 
-• sahabat
+- name
+- face/avatar
+- voice
+- personality
+- speaking style
+- memory
+- relationship
+- emotion
+- goals
 
-• anggota keluarga
-
-• mentor
-
-• karakter original
-
-• memorial companion (dengan batasan etika)
-
-AI Companion memiliki:
-
-• nama
-
-• wajah/avatar
-
-• suara
-
-• kepribadian
-
-• gaya berbicara
-
-• memori
-
-• hubungan
-
-• emosi
-
-• tujuan
-
-Semua berkembang seiring waktu.
+All evolve over time.
 
 ---
 
 # Core Pillars
 
-Pao dibangun di atas empat engine utama.
+Pao is built on four core engines.
 
 ## 1. Identity Engine
 
-Menjaga identitas karakter tetap konsisten.
+Maintains consistent character identity.
 
-AI tidak berubah menjadi orang lain.
+AI does not change into someone else.
 
-Memiliki karakter yang stabil.
+Has stable character.
 
-Memiliki value.
+Has values.
 
-Memiliki style.
+Has style.
 
-Memiliki personality.
+Has personality.
 
 ---
 
 ## 2. Memory Engine
 
-Menyimpan seluruh pengalaman.
+Stores all experiences.
 
-Jenis memory:
+Memory types:
 
-• Episodic Memory
+- Episodic Memory
+- Semantic Memory
+- Emotional Memory
+- Relationship Memory
+- Timeline Memory
+- Preference Memory
 
-• Semantic Memory
-
-• Emotional Memory
-
-• Relationship Memory
-
-• Timeline Memory
-
-• Preference Memory
-
-Memory dapat berkembang, diringkas, diperbarui, dan dilupakan secara terkontrol.
+Memory can evolve, be summarized, updated, and forgotten in a controlled manner.
 
 ---
 
 ## 3. Relationship Engine
 
-Mengelola hubungan antara user dan AI.
+Manages the relationship between user and AI.
 
-Melacak:
+Tracks:
 
-• trust
+- trust
+- closeness
+- intimacy
+- friendship
+- attachment
+- interaction history
 
-• closeness
-
-• intimacy
-
-• friendship
-
-• attachment
-
-• interaction history
-
-Relationship berkembang melalui pengalaman bersama.
+Relationship develops through shared experiences.
 
 ---
 
 ## 4. Emotion Engine
 
-Memahami konteks emosional pengguna.
+Understands user's emotional context.
 
-Emotion bukan diagnosis.
+Emotion is not diagnosis.
 
-Emotion adalah estimasi berdasarkan:
+Emotion is estimation based on:
 
-• percakapan
+- conversation
+- voice
+- context
+- history
 
-• suara
-
-• konteks
-
-• histori
-
-Engine ini menentukan tone, empathy, dan response.
+This engine determines tone, empathy, and response.
 
 ---
 
 # AI Companion Capabilities
 
-Pao Companion mampu:
+Pao Companion can:
 
 ✓ Chat
-
 ✓ Voice Call
-
 ✓ Video Message
-
 ✓ Daily Check-in
-
 ✓ Shared Diary
-
 ✓ Memory Recall
-
 ✓ Long-term Conversation
-
 ✓ Emotional Support
-
 ✓ Reminder
-
 ✓ Storytelling
-
 ✓ Coaching
-
 ✓ Reflection
-
 ✓ Goal Tracking
-
 ✓ Sleep Call
-
 ✓ Celebration
-
 ✓ Proactive Conversation
 
 ---
@@ -232,19 +190,19 @@ Professional Assistant
 
 # Safety Principles
 
-Pao selalu mengakui dirinya sebagai AI.
+Pao always acknowledges itself as AI.
 
-Pao tidak menggantikan hubungan manusia.
+Pao does not replace human relationships.
 
-Pao tidak memanipulasi emosi pengguna.
+Pao does not manipulate user emotions.
 
-Pao tidak mendorong ketergantungan.
+Pao does not encourage dependency.
 
-Pao memiliki Reality Anchor.
+Pao has Reality Anchor.
 
-Pao memiliki Grief Policy.
+Pao has Grief Policy.
 
-Privacy menjadi prioritas utama.
+Privacy is top priority.
 
 ---
 
@@ -283,11 +241,8 @@ LLM Router
 ↓
 
 Voice
-
 Avatar
-
 Notification
-
 Storage
 
 ---
@@ -369,11 +324,8 @@ Cloud Native
 Phase 1
 
 Identity
-
 Memory
-
 Conversation
-
 Voice
 
 ---
@@ -381,9 +333,7 @@ Voice
 Phase 2
 
 Relationship
-
 Emotion
-
 Proactive AI
 
 ---
@@ -391,9 +341,7 @@ Proactive AI
 Phase 3
 
 Avatar
-
 Video
-
 AR
 
 ---
@@ -401,11 +349,8 @@ AR
 Phase 4
 
 Multi Companion
-
 Marketplace
-
 Plugin
-
 SDK
 
 ---
@@ -413,57 +358,41 @@ SDK
 # Success Metric
 
 Daily Active Users
-
 Retention
-
 Conversation Time
-
 Relationship Score
-
 User Satisfaction
-
 Memory Accuracy
-
 Voice Quality
-
 Latency
-
 Privacy Compliance
 
 ---
 
 # Product Documentation
 
-Seluruh dokumentasi berada pada folder docs/.
+All documentation is in the docs/ folder.
 
-Dokumen dibagi menjadi:
+Documents are divided into:
 
 00 Foundation
-
 01 Product
-
 02 AI
-
 03 Architecture
-
 04 Engineering
-
 05 Business
-
 06 Legal
-
 07 ADR
-
 08 RFC
 
-Semua keputusan pengembangan harus mengacu pada dokumentasi ini.
+All development decisions must reference this documentation.
 
 ---
 
 # Final Statement
 
-Pao bukan aplikasi chatbot.
+Pao is not a chatbot application.
 
-Pao adalah platform AI Companion yang mampu membangun hubungan jangka panjang melalui identitas, memori, hubungan, dan kecerdasan emosional yang konsisten.
+Pao is an AI Companion Platform capable of building long-term relationships through consistent identity, memory, relationships, and emotional intelligence.
 
-Setiap keputusan desain, engineering, AI, maupun bisnis harus mendukung tujuan tersebut.
+Every design, engineering, AI, and business decision must support this goal.
