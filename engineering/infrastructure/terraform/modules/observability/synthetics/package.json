@@ -1,0 +1,13 @@
+{
+  "name": "pao-synthetics-api-health",
+  "version": "1.0.0",
+  "description": "Synthetics canary for PAO API health checks",
+  "main": "api-health.js",
+  "scripts": {
+    "test": "node api-health.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
