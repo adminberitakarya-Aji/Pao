@@ -10,15 +10,23 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import AsyncGenerator, Optional, List, Dict, Any, Literal
 import structlog
-import os
-from uuid import uuid4
 
-from pao_shared.config import get_settings
-from pao_shared.observability import setup_tracing, get_logger
-from pao_shared.models import InferenceRequest, InferenceResponse, ModelConfig
+from pao_shared import (
+    get_settings,
+    setup_tracing,
+    get_logger,
+    ModelConfig,
+    InferenceRequest,
+    InferenceResponse,
+    REQUEST_COUNT,
+    REQUEST_LATENCY,
+)
 
-logger = structlog.get_logger(__name__)
 settings = get_settings()
+logger = get_logger(__name__)
+
+# Initialize tracing
+tracer = setup_tracing("inference-gateway")
 
 
 class ModelRouter:

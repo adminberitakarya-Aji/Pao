@@ -1,0 +1,190 @@
+name: AI Services CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'engineering/ai/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'engineering/ai/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          cd engineering/ai
+          uv sync --all-extras
+
+      - name: Run Ruff linter
+        run: |
+          cd engineering/ai
+          uv run ruff check .
+
+      - name: Run Ruff formatter check
+        run: |
+          cd engineering/ai
+          uv run ruff format --check .
+
+      - name: Run MyPy type checking
+        run: |
+          cd engineering/ai
+          uv run mypy shared/src services/inference_gateway services/embedding_service services/rag_pipeline
+
+      - name: Run tests
+        run: |
+          cd engineering/ai
+          uv run pytest --cov=pao_shared --cov=services -v
+
+  build-and-push:
+    name: Build & Push Docker Images
+    needs: lint-and-test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service:
+          - inference_gateway
+          - embedding_service
+          - rag_pipeline
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/ai-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: engineering/ai/services/${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name pao-staging --region us-east-1
+
+      - name: Deploy to staging
+        run: |
+          cd engineering/ai/services
+          for service in inference_gateway embedding_service rag_pipeline; do
+            kubectl set image deployment/$service \
+              $service=ghcr.io/${{ github.repository }}/ai-$service:latest \
+              -n ai-services
+            kubectl rollout status deployment/$service -n ai-services --timeout=300s
+          done
+
+      - name: Verify deployment
+        run: |
+          for service in inference-gateway embedding-service rag-pipeline; do
+            kubectl wait --for=condition=available deployment/$service -n ai-services --timeout=60s
+            echo "$service deployed successfully"
+          done
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name pao-production --region us-east-1
+
+      - name: Deploy to production
+        run: |
+          cd engineering/ai/services
+          for service in inference_gateway embedding_service rag_pipeline; do
+            kubectl set image deployment/$service \
+              $service=ghcr.io/${{ github.repository }}/ai-$service:latest \
+              -n ai-services
+            kubectl rollout status deployment/$service -n ai-services --timeout=300s
+          done
+
+      - name: Verify deployment
+        run: |
+          for service in inference-gateway embedding-service rag-pipeline; do
+            kubectl wait --for=condition=available deployment/$service -n ai-services --timeout=60s
+            echo "$service deployed successfully"
+          done
+
+      - name: Notify deployment
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-type: application/json' \
+            -d "{\"text\":\"AI Services deployment to production: $STATUS\"}"
