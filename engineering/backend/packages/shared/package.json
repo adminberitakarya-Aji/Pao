@@ -42,7 +42,8 @@
     "ts-pattern": "^5.0.0",
     "ulid": "^2.3.0",
     "date-fns": "^3.6.0",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "fastify": "^4.26.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

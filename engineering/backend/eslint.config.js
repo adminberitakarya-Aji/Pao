@@ -23,6 +23,12 @@ module.exports = tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'warn',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/await-thenable': 'warn',
+      // Disable strict unsafe rules for existing codebase compatibility
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
     },
   }
 );

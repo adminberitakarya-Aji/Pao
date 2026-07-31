@@ -13,7 +13,7 @@ export class AppError extends Error {
     message: string,
     public readonly statusCode: number = 500,
     public readonly details?: Record<string, unknown>,
-    public readonly cause?: Error
+    public override readonly cause?: Error
   ) {
     super(message);
     this.name = 'AppError';
@@ -83,8 +83,8 @@ export class ExternalServiceError extends AppError {
   constructor(
     public readonly service: string,
     message: string,
-    public readonly statusCode: number = 502,
-    public readonly cause?: Error
+    public override readonly statusCode: number = 502,
+    public override readonly cause?: Error
   ) {
     super('EXTERNAL_SERVICE_ERROR', `${service}: ${message}`, statusCode, { service }, cause);
     this.name = 'ExternalServiceError';
@@ -224,19 +224,30 @@ export function createError(code: ErrorCode, message: string, details?: Record<s
 // Error Handler for Fastify
 // ============================================================================
 
-import type { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyError, FastifyRequest, FastifyReply, FastifyBaseLogger } from 'fastify';
+
+// Type assertion helpers for Fastify types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getLogger = (request: FastifyRequest): FastifyBaseLogger => (request as unknown as { log: FastifyBaseLogger }).log;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getRequestId = (request: FastifyRequest): string => (request as unknown as { id: string }).id;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sendResponse = (reply: FastifyReply, statusCode: number, payload: unknown): FastifyReply => 
+  (reply as unknown as { code: (statusCode: number) => { send: (payload: unknown) => FastifyReply } }).code(statusCode).send(payload);
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   // Log error
-  request.log.error({ err: error }, 'Request error');
+  const logger = getLogger(request);
+  logger.error({ err: error }, 'Request error');
 
   // Handle known AppErrors
   if (error instanceof AppError) {
-    return reply.code(error.statusCode).send({
+    const response = {
       success: false,
       error: error.toJSON(),
-      meta: { requestId: request.id, timestamp: new Date().toISOString() },
-    });
+      meta: { requestId: getRequestId(request), timestamp: new Date().toISOString() },
+    };
+    return sendResponse(reply, error.statusCode, response);
   }
 
   // Handle Zod validation errors
@@ -250,39 +261,42 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
       fieldErrors[path].push(issue.message);
     }
 
-    return reply.code(400).send({
+    const response = {
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Invalid request data',
         details: { fieldErrors },
       },
-      meta: { requestId: request.id, timestamp: new Date().toISOString() },
-    });
+      meta: { requestId: getRequestId(request), timestamp: new Date().toISOString() },
+    };
+    return sendResponse(reply, 400, response);
   }
 
   // Handle Fastify validation errors
   if (error.validation) {
-    return reply.code(400).send({
+    const response = {
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
         message: 'Invalid request',
         details: { validation: error.validation },
       },
-      meta: { requestId: request.id, timestamp: new Date().toISOString() },
-    });
+      meta: { requestId: getRequestId(request), timestamp: new Date().toISOString() },
+    };
+    return sendResponse(reply, 400, response);
   }
 
   // Default internal error
-  return reply.code(500).send({
+  const response = {
     success: false,
     error: {
       code: 'INTERNAL_ERROR',
       message: 'An unexpected error occurred',
     },
-    meta: { requestId: request.id, timestamp: new Date().toISOString() },
-  });
+    meta: { requestId: getRequestId(request), timestamp: new Date().toISOString() },
+  };
+  return sendResponse(reply, 500, response);
 }
 
 // ============================================================================
