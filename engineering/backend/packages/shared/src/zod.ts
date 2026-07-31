@@ -374,7 +374,7 @@ export function validateULID(value: string): ULID {
 }
 
 export function generateULID(): ULID {
-  return ulid() as ULID;
+  return ulid();
 }
 
 export function validateUUID(value: string): UUID {

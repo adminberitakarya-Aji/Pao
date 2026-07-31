@@ -1,6 +1,7 @@
 /** Shared Error Classes and Types */
 
-import { Result, err, ok } from 'neverthrow';
+import type { Result} from 'neverthrow';
+import { err, ok } from 'neverthrow';
 
 // ============================================================================
 // Base Error Classes
@@ -223,7 +224,7 @@ export function createError(code: ErrorCode, message: string, details?: Record<s
 // Error Handler for Fastify
 // ============================================================================
 
-import { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyError, FastifyRequest, FastifyReply } from 'fastify';
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   // Log error

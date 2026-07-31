@@ -1,6 +1,6 @@
 /** Shared Utility Functions */
 
-import { ULID } from './zod.js';
+import type { ULID } from './zod.js';
 
 // ============================================================================
 // String Utilities
@@ -365,7 +365,7 @@ export function sanitizeForLogging(obj: Record<string, unknown>, sensitiveKeys: 
 import { ulid } from 'ulid';
 
 export function generateId(): ULID {
-  return ulid() as ULID;
+  return ulid();
 }
 
 export function generateIdWithPrefix(prefix: string): string {
