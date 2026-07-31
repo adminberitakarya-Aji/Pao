@@ -1,0 +1,544 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: pao-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pao}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pao_password}
+      POSTGRES_DB: ${POSTGRES_DB:-pao}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pao} -d ${POSTGRES_DB:-pao}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: pao-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Kafka + Zookeeper (using KRaft mode - no zookeeper needed)
+  kafka:
+    image: apache/kafka:3.7
+    container_name: pao-kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Backend API
+  backend-api:
+    build:
+      context: .
+      dockerfile: packages/backend-api/Dockerfile
+    container_name: pao-backend-api
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      HOST: 0.0.0.0
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=public
+      DATABASE_POOL_SIZE: 20
+      DATABASE_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_MAX_RETRIES: 3
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: pao-backend-api
+      KAFKA_CONSUMER_GROUP: pao-backend-api-consumer
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-min-32-chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-min-32-chars}
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 30d
+      JWT_ISSUER: pao-backend
+      JWT_AUDIENCE: pao-mobile
+      # OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID}
+      APPLE_KEY_ID: ${APPLE_KEY_ID}
+      APPLE_PRIVATE_KEY: ${APPLE_PRIVATE_KEY}
+      # AI Engine URLs
+      INFERENCE_GATEWAY_URL: http://inference-gateway:8000
+      IDENTITY_ENGINE_URL: http://identity-engine:8003
+      MEMORY_ENGINE_URL: http://memory-engine:8004
+      SAFETY_ENGINE_URL: http://safety-engine:8005
+      RELATIONSHIP_ENGINE_URL: http://relationship-engine:8006
+      EMOTION_ENGINE_URL: http://emotion-engine:8007
+      VOICE_ENGINE_URL: http://voice-engine:8008
+      PROACTIVE_ENGINE_URL: http://proactive-engine:8009
+      EVALUATION_ENGINE_URL: http://evaluation-engine:8010
+      COMPANION_RUNTIME_URL: http://companion-runtime:8011
+      # Stripe
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_PRICE_ID_MONTHLY: ${STRIPE_PRICE_ID_MONTHLY}
+      STRIPE_PRICE_ID_YEARLY: ${STRIPE_PRICE_ID_YEARLY}
+      # Email
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDGRID_FROM_EMAIL: ${SENDGRID_FROM_EMAIL:-noreply@pao.ai}
+      SENDGRID_FROM_NAME: PAO
+      # Push Notifications
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      WEB_PUSH_VAPID_PUBLIC_KEY: ${WEB_PUSH_VAPID_PUBLIC_KEY}
+      WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY}
+      WEB_PUSH_VAPID_SUBJECT: ${WEB_PUSH_VAPID_SUBJECT:-mailto:admin@pao.ai}
+      # LiveKit
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_WS_URL: ${LIVEKIT_WS_URL}
+      # S3
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      # Observability
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: pao-backend-api
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PROMETHEUS_PORT: 9090
+      # Rate Limiting
+      RATE_LIMIT_MAX: 100
+      RATE_LIMIT_WINDOW_MS: 60000
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      # Feature Flags
+      ENABLE_VOICE: "true"
+      ENABLE_PROACTIVE: "true"
+      ENABLE_MEMORY_BROWSER: "true"
+    ports:
+      - "3000:3000"
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # AI Engines (Python services)
+  inference-gateway:
+    build:
+      context: ../ai
+      dockerfile: services/inference_gateway/Dockerfile
+    container_name: pao-inference-gateway
+    environment:
+      PORT: 8000
+      MODEL_PATH: /models
+      LOG_LEVEL: info
+    volumes:
+      - ./models:/models:ro
+    ports:
+      - "8000:8000"
+    networks:
+      - pao-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  identity-engine:
+    build:
+      context: ../ai
+      dockerfile: services/identity_engine/Dockerfile
+    container_name: pao-identity-engine
+    environment:
+      PORT: 8003
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=identity
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-min-32-chars}
+      LOG_LEVEL: info
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  memory-engine:
+    build:
+      context: ../ai
+      dockerfile: services/memory_engine/Dockerfile
+    container_name: pao-memory-engine
+    environment:
+      PORT: 8004
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=memory
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      VECTOR_DB_URL: ${VECTOR_DB_URL:-http://qdrant:6333}
+      LOG_LEVEL: info
+    ports:
+      - "8004:8004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  safety-engine:
+    build:
+      context: ../ai
+      dockerfile: services/safety_engine/Dockerfile
+    container_name: pao-safety-engine
+    environment:
+      PORT: 8005
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=safety
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      LOG_LEVEL: info
+    ports:
+      - "8005:8005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  relationship-engine:
+    build:
+      context: ../ai
+      dockerfile: services/relationship_engine/Dockerfile
+    container_name: pao-relationship-engine
+    environment:
+      PORT: 8006
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=relationship
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      LOG_LEVEL: info
+    ports:
+      - "8006:8006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  emotion-engine:
+    build:
+      context: ../ai
+      dockerfile: services/emotion_engine/Dockerfile
+    container_name: pao-emotion-engine
+    environment:
+      PORT: 8007
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=emotion
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      LOG_LEVEL: info
+    ports:
+      - "8007:8007"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  voice-engine:
+    build:
+      context: ../ai
+      dockerfile: services/voice_engine/Dockerfile
+    container_name: pao-voice-engine
+    environment:
+      PORT: 8008
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=voice
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_WS_URL: ${LIVEKIT_WS_URL}
+      LOG_LEVEL: info
+    ports:
+      - "8008:8008"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  proactive-engine:
+    build:
+      context: ../ai
+      dockerfile: services/proactive_engine/Dockerfile
+    container_name: pao-proactive-engine
+    environment:
+      PORT: 8009
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=proactive
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      LOG_LEVEL: info
+    ports:
+      - "8009:8009"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  evaluation-engine:
+    build:
+      context: ../ai
+      dockerfile: services/evaluation_engine/Dockerfile
+    container_name: pao-evaluation-engine
+    environment:
+      PORT: 8010
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=evaluation
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      LOG_LEVEL: info
+    ports:
+      - "8010:8010"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  companion-runtime:
+    build:
+      context: ../ai
+      dockerfile: runtime/Dockerfile
+    container_name: pao-companion-runtime
+    environment:
+      PORT: 8011
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pao}:${POSTGRES_PASSWORD:-pao_password}@postgres:5432/${POSTGRES_DB:-pao}?schema=runtime
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      INFERENCE_GATEWAY_URL: http://inference-gateway:8000
+      IDENTITY_ENGINE_URL: http://identity-engine:8003
+      MEMORY_ENGINE_URL: http://memory-engine:8004
+      SAFETY_ENGINE_URL: http://safety-engine:8005
+      RELATIONSHIP_ENGINE_URL: http://relationship-engine:8006
+      EMOTION_ENGINE_URL: http://emotion-engine:8007
+      VOICE_ENGINE_URL: http://voice-engine:8008
+      PROACTIVE_ENGINE_URL: http://proactive-engine:8009
+      EVALUATION_ENGINE_URL: http://evaluation-engine:8010
+      LOG_LEVEL: info
+    ports:
+      - "8011:8011"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      inference-gateway:
+        condition: service_started
+      identity-engine:
+        condition: service_started
+      memory-engine:
+        condition: service_started
+      safety-engine:
+        condition: service_started
+      relationship-engine:
+        condition: service_started
+      emotion-engine:
+        condition: service_started
+      voice-engine:
+        condition: service_started
+      proactive-engine:
+        condition: service_started
+      evaluation-engine:
+        condition: service_started
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Qdrant Vector Database (for Memory Engine)
+  qdrant:
+    image: qdrant/qdrant:v1.8
+    container_name: pao-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v2.48
+    container_name: pao-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9091:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.2
+    container_name: pao-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # Jaeger (Distributed Tracing)
+  jaeger:
+    image: jaegertracing/all-in-one:1.50
+    container_name: pao-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: badger
+    volumes:
+      - jaeger_data:/var/lib/jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
+  jaeger_data:
+
+networks:
+  pao-network:
+    driver: bridge

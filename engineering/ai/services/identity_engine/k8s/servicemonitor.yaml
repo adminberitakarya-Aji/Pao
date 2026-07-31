@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: identity-engine
+  namespace: ai-services
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: identity-engine
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scheme: http
+  namespaceSelector:
+    matchNames:
+      - ai-services

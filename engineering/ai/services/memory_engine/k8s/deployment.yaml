@@ -1,0 +1,252 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-engine
+  namespace: ai-services
+  labels:
+    app: memory-engine
+    component: ai-engine
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: memory-engine
+  template:
+    metadata:
+      labels:
+        app: memory-engine
+        component: ai-engine
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: memory-engine
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: memory-engine
+          image: ghcr.io/pao/memory-engine:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8004
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: environment
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: memory-engine-secrets
+                  key: database-url
+            - name: QDRANT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: qdrant-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: memory-engine-secrets
+                  key: redis-url
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: kafka-bootstrap-servers
+            - name: TEMPORAL_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: temporal-address
+            - name: EMBEDDING_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: embedding-service-url
+            - name: INFERENCE_GATEWAY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: inference-gateway-url
+            - name: SAFETY_ENGINE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: safety-engine-url
+            - name: IDENTITY_ENGINE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: memory-engine-config
+                  key: identity-engine-url
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: memory-engine-secrets
+                  key: api-key
+            - name: INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: memory-engine-secrets
+                  key: internal-api-key
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - memory-engine
+                topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memory-engine
+  namespace: ai-services
+  labels:
+    app: memory-engine
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8004
+      targetPort: 8004
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app: memory-engine
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memory-engine-config
+  namespace: ai-services
+data:
+  environment: "production"
+  qdrant-url: "http://qdrant.ai-services.svc.cluster.local:6333"
+  kafka-bootstrap-servers: "kafka.kafka.svc.cluster.local:9092"
+  temporal-address: "temporal.temporal.svc.cluster.local:7233"
+  embedding-service-url: "http://embedding-service.ai-services.svc.cluster.local:8001"
+  inference-gateway-url: "http://inference-gateway.ai-services.svc.cluster.local:8000"
+  safety-engine-url: "http://safety-engine.ai-services.svc.cluster.local:8005"
+  identity-engine-url: "http://identity-engine.ai-services.svc.cluster.local:8003"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: memory-engine-secrets
+  namespace: ai-services
+type: Opaque
+stringData:
+  database-url: "postgresql+asyncpg://postgres:password@postgres.databases.svc.cluster.local:5432/pao_memory"
+  redis-url: "redis://redis.databases.svc.cluster.local:6379/0"
+  api-key: "your-api-key-here"
+  internal-api-key: "your-internal-api-key-here"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: memory-engine-hpa
+  namespace: ai-services
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: memory-engine
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: memory-engine-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: memory-engine
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - ai-services

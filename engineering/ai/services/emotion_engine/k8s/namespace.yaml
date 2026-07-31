@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pao-emotion-engine
+  labels:
+    app.kubernetes.io/name: emotion-engine
+    app.kubernetes.io/part-of: pao-ai

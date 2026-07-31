@@ -1,0 +1,374 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 100},
+              {"color": "red", "value": 500}
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(safety_engine_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p95 - {{endpoint}}"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(safety_engine_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+          "legendFormat": "p99 - {{endpoint}}"
+        }
+      ],
+      "title": "Request Latency (p95, p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(safety_engine_requests_total[5m])) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "title": "Request Rate by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": {
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(safety_engine_checks_total[5m])) by (check_type, result)",
+          "legendFormat": "{{check_type}} - {{result}}"
+        }
+      ],
+      "title": "Safety Checks Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"type": "value", "options": {"0": {"color": "green", "text": "ALLOW"}, "1": {"color": "yellow", "text": "GENTLE_REDIRECT"}, "2": {"color": "orange", "text": "FIRM_BOUNDARY"}, "3": {"color": "red", "text": "RESOURCE_PROVIDE"}, "4": {"color": "dark-red", "text": "CRISIS_ESCALATE"}}}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": {
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(safety_engine_interventions_total[5m])) by (level)",
+          "legendFormat": "{{level}}"
+        }
+      ],
+      "title": "Interventions by Level",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 10},
+              {"color": "red", "value": 50}
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "id": 5,
+      "options": {
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "rate(safety_engine_crisis_detected_total[5m])",
+          "legendFormat": "Crisis Detected"
+        }
+      ],
+      "title": "Crisis Detection Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"tooltip": false, "viz": false, "legend": false}, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": true},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "id": 6,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(safety_engine_crisis_detected_total[5m])) by (crisis_type, risk_level)",
+          "legendFormat": "{{crisis_type}} - {{risk_level}}"
+        }
+      ],
+      "title": "Crisis Events by Type and Risk Level",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.05},
+              {"color": "red", "value": 0.1}
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+      "id": 7,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "safety_engine_false_positive_rate",
+          "legendFormat": "False Positive Rate"
+        },
+        {
+          "expr": "safety_engine_false_negative_rate",
+          "legendFormat": "False Negative Rate"
+        }
+      ],
+      "title": "False Positive / Negative Rates",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 50},
+              {"color": "red", "value": 80}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+      "id": 8,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "(1 - (safety_engine_checks_total{result=\"passed\"} / safety_engine_checks_total)) * 100",
+          "legendFormat": "Violation Rate %"
+        }
+      ],
+      "title": "Safety Violation Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 100},
+              {"color": "red", "value": 500}
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+      "id": 9,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "rate(safety_engine_active_requests[5m])",
+          "legendFormat": "Active Requests"
+        }
+      ],
+      "title": "Active Requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 80},
+              {"color": "red", "value": 90}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+      "id": 10,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(safety_engine_requests_total[5m])) by (method, endpoint, status)",
+          "legendFormat": "{{method}} {{endpoint}} - {{status}}"
+        }
+      ],
+      "title": "Request Rate by Endpoint",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["pao", "safety-engine"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "PAO Safety Engine Dashboard",
+  "uid": "pao-safety-engine",
+  "version": 1,
+  "weekStart": ""
+}

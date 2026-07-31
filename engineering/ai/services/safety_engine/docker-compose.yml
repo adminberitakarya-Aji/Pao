@@ -1,0 +1,284 @@
+# PAO Safety Engine - Docker Compose for Local Development
+# Run with: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: pao-safety-postgres
+    environment:
+      POSTGRES_DB: pao_safety
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pao_safety"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pao-safety-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pao-safety-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pao-safety-network
+
+  # Safety Engine Service
+  safety-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: pao-safety-engine
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/pao_safety
+      - REDIS_URL=redis://redis:6379/1
+      - SERVICE_PORT=8005
+      - MODEL_DEVICE=cpu
+      - MODEL_PRECISION=float16
+      - CRISIS_THRESHOLD_HIGH=0.95
+      - CRISIS_THRESHOLD_MEDIUM=0.80
+      - CRISIS_THRESHOLD_LOW=0.60
+      - INFERENCE_GATEWAY_URL=http://inference-gateway:8000
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - TEMPORAL_ADDRESS=temporal:7233
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+      - TRACING_ENABLED=true
+      - TRACING_SAMPLE_RATE=0.1
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_WINDOW_SECONDS=60
+    ports:
+      - "8005:8005"
+      - "9090:9090"
+    volumes:
+      - ./src:/app/src:ro
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/safety/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - pao-safety-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # Inference Gateway (Mock for local dev)
+  inference-gateway:
+    image: python:3.11-slim
+    container_name: pao-inference-gateway
+    working_dir: /app
+    command: >
+      sh -c "pip install fastapi uvicorn &&
+             python -c '
+             from fastapi import FastAPI
+             from pydantic import BaseModel
+             import uvicorn
+             app = FastAPI()
+             class InferRequest(BaseModel):
+                 text: str
+                 model: str = \"default\"
+             class InferResponse(BaseModel):
+                 output: str
+                 confidence: float
+             @app.post(\"/infer\", response_model=InferResponse)
+             async def infer(req: InferRequest):
+                 return {\"output\": \"Mock inference response\", \"confidence\": 0.9}
+             @app.get(\"/health\")
+             async def health():
+                 return {\"status\": \"healthy\"}
+             uvicorn.run(app, host=\"0.0.0.0\", port=8000)
+             '"
+    ports:
+      - "8000:8000"
+    networks:
+      - pao-safety-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Embedding Service (Mock for local dev)
+  embedding-service:
+    image: python:3.11-slim
+    container_name: pao-embedding-service
+    working_dir: /app
+    command: >
+      sh -c "pip install fastapi uvicorn &&
+             python -c '
+             from fastapi import FastAPI
+             from pydantic import BaseModel
+             import uvicorn
+             app = FastAPI()
+             class EmbedRequest(BaseModel):
+                 texts: list[str]
+             class EmbedResponse(BaseModel):
+                 embeddings: list[list[float]]
+             @app.post(\"/embed\", response_model=EmbedResponse)
+             async def embed(req: EmbedRequest):
+                 # Return mock embeddings (384 dims)
+                 import random
+                 return {\"embeddings\": [[random.random() for _ in range(384)] for _ in req.texts]}
+             @app.get(\"/health\")
+             async def health():
+                 return {\"status\": \"healthy\"}
+             uvicorn.run(app, host=\"0.0.0.0\", port=8001)
+             '"
+    ports:
+      - "8001:8001"
+    networks:
+      - pao-safety-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka (for event streaming)
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: pao-kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - pao-safety-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: pao-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - pao-safety-network
+
+  # Temporal (for workflow orchestration)
+  temporal:
+    image: temporalio/auto-setup:1.22
+    container_name: pao-temporal
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=postgres
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    depends_on:
+      - postgres
+    networks:
+      - pao-safety-network
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.98.0
+    container_name: pao-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "8888:8888"  # Prometheus metrics
+    networks:
+      - pao-safety-network
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: pao-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9091:9090"
+    networks:
+      - pao-safety-network
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: pao-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - pao-safety-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  pao-safety-network:
+    driver: bridge

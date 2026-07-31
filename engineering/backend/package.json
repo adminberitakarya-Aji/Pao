@@ -2,9 +2,6 @@
   "name": "@pao/backend",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -27,7 +24,7 @@
     "@typescript-eslint/parser": "^7.0.0",
     "vitest": "^1.4.0",
     "@vitest/coverage-v8": "^1.4.0",
-    "buf": "^1.28.0",
+    "@bufbuild/buf": "^1.28.0",
     "tsx": "^4.7.0"
   },
   "engines": {

@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: memory-engine
+  namespace: monitoring
+  labels:
+    release: prometheus
+    app: memory-engine
+spec:
+  selector:
+    matchLabels:
+      app: memory-engine
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      honorLabels: true
+  namespaceSelector:
+    matchNames:
+      - ai-services

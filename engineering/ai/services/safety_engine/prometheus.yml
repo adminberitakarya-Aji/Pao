@@ -1,0 +1,77 @@
+# Prometheus Configuration for PAO Safety Engine
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    service: 'safety-engine'
+    environment: 'development'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Safety Engine Service
+  - job_name: 'safety-engine'
+    static_configs:
+      - targets: ['safety-engine:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Inference Gateway
+  - job_name: 'inference-gateway'
+    static_configs:
+      - targets: ['inference-gateway:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Embedding Service
+  - job_name: 'embedding-service'
+    static_configs:
+      - targets: ['embedding-service:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+
+  # Kafka
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9092']
+
+  # Temporal
+  - job_name: 'temporal'
+    static_configs:
+      - targets: ['temporal:8233']
+
+  # OpenTelemetry Collector
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+
+  # Node Exporter (host metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
+
+  # cAdvisor (container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['host.docker.internal:8080']

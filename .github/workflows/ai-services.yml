@@ -51,7 +51,7 @@ jobs:
       - name: Run MyPy type checking
         run: |
           cd engineering/ai
-          uv run mypy shared/src services/inference_gateway services/embedding_service services/rag_pipeline
+          uv run mypy shared/src services/inference_gateway services/embedding_service services/rag_pipeline services/identity_engine
 
       - name: Run tests
         run: |
@@ -72,6 +72,7 @@ jobs:
           - inference_gateway
           - embedding_service
           - rag_pipeline
+          - identity_engine
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -130,7 +131,7 @@ jobs:
       - name: Deploy to staging
         run: |
           cd engineering/ai/services
-          for service in inference_gateway embedding_service rag_pipeline; do
+          for service in inference_gateway embedding_service rag_pipeline identity_engine; do
             kubectl set image deployment/$service \
               $service=ghcr.io/${{ github.repository }}/ai-$service:latest \
               -n ai-services
@@ -139,10 +140,10 @@ jobs:
 
       - name: Verify deployment
         run: |
-          for service in inference-gateway embedding-service rag-pipeline; do
-            kubectl wait --for=condition=available deployment/$service -n ai-services --timeout=60s
-            echo "$service deployed successfully"
-          done
+            for service in inference-gateway embedding-service rag-pipeline identity-engine; do
+              kubectl wait --for=condition=available deployment/$service -n ai-services --timeout=60s
+              echo "$service deployed successfully"
+            done
 
   deploy-production:
     name: Deploy to Production
@@ -167,7 +168,7 @@ jobs:
       - name: Deploy to production
         run: |
           cd engineering/ai/services
-          for service in inference_gateway embedding_service rag_pipeline; do
+          for service in inference_gateway embedding_service rag_pipeline identity_engine; do
             kubectl set image deployment/$service \
               $service=ghcr.io/${{ github.repository }}/ai-$service:latest \
               -n ai-services
@@ -176,7 +177,7 @@ jobs:
 
       - name: Verify deployment
         run: |
-          for service in inference-gateway embedding-service rag-pipeline; do
+          for service in inference-gateway embedding-service rag-pipeline identity-engine; do
             kubectl wait --for=condition=available deployment/$service -n ai-services --timeout=60s
             echo "$service deployed successfully"
           done

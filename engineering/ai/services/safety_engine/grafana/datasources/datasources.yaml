@@ -1,0 +1,44 @@
+# Grafana Datasource Configuration for PAO Safety Engine
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      httpMethod: "GET"
+      tracesToLogs:
+        datasourceUid: "Loki"
+        tags: ["job", "instance", "pod", "namespace"]
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
+        filterByTraceID: true
+        filterBySpanID: false
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      httpMethod: "POST"
+      maxLines: 1000
+      derivedFields:
+        - name: "TraceID"
+          matcherRegex: "traceID=(\\w+)"
+          url: "http://tempo:3200/tempo/trace/$${__value.raw}"
+          datasourceUid: "Tempo"

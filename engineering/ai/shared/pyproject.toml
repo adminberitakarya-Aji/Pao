@@ -2,7 +2,6 @@
 name = "pao-shared"
 version = "1.0.0"
 description = "PAO Shared Python Library"
-readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = {text = "MIT"}
 authors = [
@@ -33,6 +32,9 @@ dev = [
 
 [tool.uv]
 package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pao_shared"]
 
 [build-system]
 requires = ["hatchling"]

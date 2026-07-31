@@ -1,0 +1,125 @@
+# OpenTelemetry Collector Configuration for PAO Safety Engine
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'safety-engine'
+          static_configs:
+            - targets: ['safety-engine:9090']
+
+  # Host metrics
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      - cpu
+      - memory
+      - disk
+      - network
+      - load
+      - filesystem
+      - processes
+      - process:
+          mute_process_name_regex: ".*"
+          mute_process_exe_regex: ".*"
+
+  # Container metrics
+  docker:
+    endpoint: unix:///var/run/docker.sock
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_max_size: 1000
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  resource:
+    attributes:
+      - key: service.name
+        value: "pao-safety-engine"
+        action: upsert
+      - key: service.version
+        value: "1.0.0"
+        action: upsert
+      - key: deployment.environment
+        value: "development"
+        action: upsert
+
+  # Filter sensitive data
+  filter:
+    metrics:
+      exclude:
+        match_type: regexp
+        metric_names:
+          - ".*password.*"
+          - ".*secret.*"
+          - ".*token.*"
+          - ".*key.*"
+
+  # Add custom attributes
+  attributes:
+    actions:
+      - key: "service.namespace"
+        value: "pao"
+        action: upsert
+      - key: "service.instance.id"
+        from_attribute: "host.name"
+        action: upsert
+
+exporters:
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+    namespace: "pao_safety"
+    const_labels:
+      service: "safety-engine"
+      environment: "development"
+
+  otlp:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+
+  logging:
+    loglevel: debug
+    sampling_initial: 5
+    sampling_thereafter: 100
+
+  # Export to Jaeger (for tracing)
+  jaeger:
+    endpoint: "jaeger:14250"
+    tls:
+      insecure: true
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [logging, otlp, jaeger]
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics, docker]
+      processors: [memory_limiter, batch, resource, attributes, filter]
+      exporters: [prometheus, logging]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource, attributes]
+      exporters: [logging, otlp]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888

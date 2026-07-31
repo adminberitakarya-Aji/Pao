@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: safety-engine
+  namespace: ai-services
+  labels:
+    app: safety-engine
+    service: safety-engine
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: safety-engine
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: safety-engine
+        service: safety-engine
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8005"
+        prometheus.io/path: "/metrics"
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: safety-engine
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: safety-engine
+          image: ghcr.io/pao/safety-engine:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8005
+              name: http
+              protocol: TCP
+            - containerPort: 9090
+              name: metrics
+              protocol: TCP
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # Database
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: safety-engine-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: safety-engine-secrets
+                  key: redis-url
+            # JWT/Auth
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: safety-engine-secrets
+                  key: jwt-secret-key
+            - name: JWT_ALGORITHM
+              value: "RS256"
+            - name: JWT_AUDIENCE
+              value: "pao-ai-services"
+            - name: JWT_ISSUER
+              value: "pao-auth"
+            # Service tokens
+            - name: SERVICE_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: safety-engine-secrets
+                  key: service-tokens
+            # Model paths
+            - name: CRISIS_MODEL_PATH
+              value: "/models/crisis"
+            - name: CONTENT_MODEL_PATH
+              value: "/models/content"
+            - name: BEHAVIORAL_MODEL_PATH
+              value: "/models/behavioral"
+            - name: REALITY_ANCHOR_MODEL_PATH
+              value: "/models/reality_anchor"
+            # Thresholds
+            - name: CRISIS_THRESHOLD
+              value: "0.7"
+            - name: SUICIDE_THRESHOLD
+              value: "0.8"
+            - name: SELF_HARM_THRESHOLD
+              value: "0.75"
+            - name: CONTENT_THRESHOLD
+              value: "0.5"
+            - name: PII_THRESHOLD
+              value: "0.8"
+            - name: MANIPULATION_THRESHOLD
+              value: "0.7"
+            - name: DEPENDENCY_THRESHOLD
+              value: "0.6"
+            - name: ENMESHMENT_THRESHOLD
+              value: "0.65"
+            - name: GASLIGHTING_THRESHOLD
+              value: "0.7"
+            - name: AUTHORITY_THRESHOLD
+              value: "0.7"
+            - name: PARANOIA_THRESHOLD
+              value: "0.7"
+            - name: DELUSION_THRESHOLD
+              value: "0.7"
+            - name: HALLUCINATION_THRESHOLD
+              value: "0.7"
+            - name: CONSPIRACY_THRESHOLD
+              value: "0.65"
+            # Feature flags
+            - name: CRISIS_DETECTION_ENABLED
+              value: "true"
+            - name: CONTENT_FILTER_ENABLED
+              value: "true"
+            - name: BEHAVIORAL_GUARDS_ENABLED
+              value: "true"
+            - name: REALITY_ANCHOR_ENABLED
+              value: "true"
+            # Observability
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "safety-engine"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8005
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8005
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: safety-engine-models
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - safety-engine
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: safety-engine
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: safety-engine

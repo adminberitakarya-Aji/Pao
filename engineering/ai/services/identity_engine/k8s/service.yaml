@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-engine
+  namespace: ai-services
+  labels:
+    app: identity-engine
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8003
+      protocol: TCP
+      name: http
+  selector:
+    app: identity-engine

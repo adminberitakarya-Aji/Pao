@@ -1,0 +1,228 @@
+version: '3.8'
+
+services:
+  # Memory Engine Service
+  memory-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: pao-memory-engine
+    ports:
+      - "8004:8004"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/pao_memory
+      - QDRANT_URL=http://qdrant:6333
+      - REDIS_URL=redis://redis:6379/0
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - TEMPORAL_ADDRESS=temporal:7233
+      - EMBEDDING_SERVICE_URL=http://embedding-service:8001
+      - INFERENCE_GATEWAY_URL=http://inference-gateway:8000
+      - SAFETY_ENGINE_URL=http://safety-engine:8005
+      - IDENTITY_ENGINE_URL=http://identity-engine:8003
+      - API_KEY=dev-api-key
+      - INTERNAL_API_KEY=dev-internal-api-key
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    networks:
+      - pao-network
+    restart: unless-stopped
+
+  # PostgreSQL with pgvector
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: pao-postgres
+    environment:
+      - POSTGRES_DB=pao_memory
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pao_memory"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - pao-network
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: pao-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - pao-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pao-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - pao-network
+
+  # Kafka for Event Streaming
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: pao-kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_LOG_RETENTION_HOURS=168
+      - KAFKA_LOG_SEGMENT_BYTES=1073741824
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    depends_on:
+      zookeeper:
+        condition: service_started
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - pao-network
+
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: pao-zookeeper
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pao-network
+
+  # Temporal for Workflow Orchestration
+  temporal:
+    image: temporalio/auto-setup:1.22
+    container_name: pao-temporal
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PWD=postgres
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_DB=temporal
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - temporal_data:/etc/temporal
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - pao-network
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: pao-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - pao-network
+
+  # Grafana for Dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: pao-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - pao-network
+
+networks:
+  pao-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  temporal_data:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-engine
+  namespace: ai-services
+  labels:
+    app: identity-engine
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: identity-engine
+  template:
+    metadata:
+      labels:
+        app: identity-engine
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8003"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: identity-engine
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: identity-engine
+          image: ghcr.io/adminberitakarya-aji/pao/ai-identity-engine:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8003
+              name: http
+          env:
+            - name: ENVIRONMENT
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: identity-engine-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: identity-engine-secrets
+                  key: redis-url
+            - name: QDRANT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: identity-engine-secrets
+                  key: qdrant-url
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8003
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - identity-engine
+                topologyKey: kubernetes.io/hostname

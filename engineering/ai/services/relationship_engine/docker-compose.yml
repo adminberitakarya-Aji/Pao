@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: relationship-engine-postgres
+    environment:
+      POSTGRES_DB: relationship_engine
+      POSTGRES_USER: relationship_engine
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relationship_engine -d relationship_engine"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - relationship-engine-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: relationship-engine-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - relationship-engine-network
+
+  kuzu:
+    image: kuzudb/kuzu:latest
+    container_name: relationship-engine-kuzu
+    ports:
+      - "8000:8000"
+    volumes:
+      - kuzu_data:/database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - relationship-engine-network
+
+  relationship-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: relationship-engine-api
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://relationship_engine:dev_password@postgres:5432/relationship_engine
+      - REDIS_URL=redis://redis:6379/0
+      - KUZU_URL=kuzu://kuzu:8000
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - TRACING_ENABLED=false
+      - PORT=8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kuzu:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+    networks:
+      - relationship-engine-network
+
+  # Worker for auto-generating diary entries
+  relationship-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: relationship-engine-worker
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://relationship_engine:dev_password@postgres:5432/relationship_engine
+      - REDIS_URL=redis://redis:6379/0
+      - KUZU_URL=kuzu://kuzu:8000
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - WORKER_CONCURRENCY=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+    networks:
+      - relationship-engine-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  kuzu_data:
+
+networks:
+  relationship-engine-network:
+    driver: bridge

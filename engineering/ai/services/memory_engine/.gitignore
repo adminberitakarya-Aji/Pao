@@ -1,0 +1,330 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytestdebug.log
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# uv
+uv.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# IDE - VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IDE - PyCharm / IntelliJ
+.idea/
+*.iml
+
+# IDE - Vim
+*.swp
+*.swo
+*~
+
+# IDE - Emacs
+*~
+\#*#
+.#*
+
+# OS - macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# OS - Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# OS - Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Docker
+.docker/
+docker-compose.override.yml
+.dockerignore
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
+.terraform.lock.hcl
+
+# Secrets / Credentials
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+keystore
+truststore
+.secrets/
+secrets.yaml
+secrets.yml
+*.secret
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.sql
+
+# Backup files
+*.bak
+*.backup
+*.orig
+*.old
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+tmp/
+
+# Coverage
+coverage/
+.coverage
+coverage.xml
+htmlcov/
+
+# Test results
+test-results/
+*.xml
+junit.xml
+
+# Profiling
+*.prof
+*.profile
+
+# Type stubs
+*.pyi
+
+# Compiled Python
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Mypy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Pyright
+.pyright_cache/
+
+# Local development
+local/
+dev/
+.local/
+
+# Node modules (if any frontend)
+node_modules/
+
+# Yarn
+.yarn/
+yarn.lock
+
+# pnpm
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+out/
+
+# Environment files (keep .env.example)
+.env
+.env.*
+
+# IDE specific
+*.swp
+*.swo
+*~
+
+# Project specific
+*.egg-info/
+*.dist-info/

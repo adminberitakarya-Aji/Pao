@@ -1,0 +1,441 @@
+# Byte Order Mark
+# ------------------------------------------------------------
+*~
+
+# OS generated files
+# ------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor/IDE files
+# ------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Python
+# ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+cython_debug/
+.ruff_cache/
+.uv/
+uv.lock
+# uv specific
+.uv_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# Node.js / pnpm / npm / yarn
+# ------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.eslintcache
+.pnp/
+.pnp.js
+.yarn/
+.yarn-integrity
+.yarnrc.yml
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+*.cache/
+.cache/
+.turbo/
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.*
+
+# Docker
+.dockerignore
+.docker/
+
+# Terraform
+# ------------------------------------------------------------
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.tfplan
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate.backup
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Kubernetes
+# ------------------------------------------------------------
+kubeconfig
+*.kubeconfig
+
+# Database
+# ------------------------------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql
+
+# IDE / Editor specific
+# ------------------------------------------------------------
+# VS Code
+.vscode/launch.json
+.vscode/settings.json
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Mac
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Testing
+# ------------------------------------------------------------
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.pytest_cache/
+*.cover
+.coverage.*
+*.py,cover
+
+# Profiling
+*.prof
+*.pstats
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Linting
+.ruff_cache/
+
+# Documentation
+# ------------------------------------------------------------
+docs/_build/
+site/
+.mkdocs.yml
+
+# CI/CD
+# ------------------------------------------------------------
+.github/workflows/*.yaml
+!.github/workflows/*.yaml.example
+
+# Misc
+# ------------------------------------------------------------
+*.pid
+*.seed
+*.pid.lock
+.lock-wscript
+
+# OS specific
+# ------------------------------------------------------------
+# Windows
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# macOS
+*.app
+*.dmg
+
+# Temporary files
+# ------------------------------------------------------------
+tmp/
+temp/
+.tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archive files
+# ------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Secrets / Keys / Certs
+# ------------------------------------------------------------
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+secrets/
+*.secret
+*.secrets
+vault/
+*.vault
+
+# Generated code / protobuf
+# ------------------------------------------------------------
+**/generated/
+**/gen/
+*.pb.go
+*.pb.py
+*.proto.ts
+
+# Bazel
+# ------------------------------------------------------------
+bazel-*/
+.bazelrc
+
+# Nx
+# ------------------------------------------------------------
+.nx/
+
+# EAS / Expo
+# ------------------------------------------------------------
+.expo/
+dist/
+web-build/
+*.apk
+*.ipa
+*.aab
+
+# Android
+# ------------------------------------------------------------
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+build.gradle.local.properties
+local.properties
+*.keystore
+*.jks
+*.properties
+*.gradle
+
+# iOS
+# ------------------------------------------------------------
+*.xcworkspace
+*.xcodeproj/xcuserdata/
+*.xcuserstate
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.mobileprovision
+*.provisionprofile
+Pods/
+Podfile.lock
+Carthage/
+Build/
+DerivedData/
+*.moved-aside
+*.xcscmblueprint
+*.xccheckout
+
+# Fastlane
+# ------------------------------------------------------------
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+fastlane/readme.md
+
+# React Native / Metro
+# ------------------------------------------------------------
+.metro-health-check*
+*.log
+*.log.*
+
+# Python specific to this project
+# ------------------------------------------------------------
+# Ruff
+.ruff_cache/
+
+# UV
+.uv/
+uv.lock
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# TypeScript / JavaScript specific
+# ------------------------------------------------------------
+*.tsbuildinfo
+.turbo/
+dist/
+build/
+
+# Storybook
+storybook-static/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Vitest
+coverage/
+
+# Docusaurus / MkDocs
+build/
+site/
+.mkdocs.yml
+
+# Generated OpenAPI / API clients
+# ------------------------------------------------------------
+**/generated-api/
+**/api-clients/
+*.generated.ts
+*.generated.py
+
+# Database migrations (generated)
+# ------------------------------------------------------------
+alembic/versions/
+*.sql
+!alembic/versions/*.py
+
+# Local development
+# ------------------------------------------------------------
+.local/
+.dev/
+local/
+dev/
+
+# Backup files
+# ------------------------------------------------------------
+*.bak
+*.backup
+*.old
+*.orig
+*~

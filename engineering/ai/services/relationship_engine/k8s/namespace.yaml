@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: relationship-engine
+  labels:
+    app.kubernetes.io/name: relationship-engine
+    app.kubernetes.io/part-of: pao-platform

@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emotion-engine
+  namespace: pao-emotion-engine
+  labels:
+    app.kubernetes.io/name: emotion-engine
+    app.kubernetes.io/part-of: pao-ai
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: emotion-engine
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: emotion-engine
+        app.kubernetes.io/part-of: pao-ai
+        app.kubernetes.io/version: "0.1.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+        # Enable Istio sidecar if using service mesh
+        # sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: emotion-engine
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: emotion-engine
+          image: ghcr.io/pao/emotion-engine:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: emotion-engine-config
+            - secretRef:
+                name: emotion-engine-secrets
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health/ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/v1/health/live
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 500Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - emotion-engine
+                topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: emotion-engine

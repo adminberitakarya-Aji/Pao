@@ -1,0 +1,108 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'pao-local'
+    environment: 'development'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Backend API
+  - job_name: 'backend-api'
+    static_configs:
+      - targets: ['backend-api:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # AI Engines (Python services with prometheus_client)
+  - job_name: 'inference-gateway'
+    static_configs:
+      - targets: ['inference-gateway:8000']
+    metrics_path: '/metrics'
+
+  - job_name: 'identity-engine'
+    static_configs:
+      - targets: ['identity-engine:8003']
+    metrics_path: '/metrics'
+
+  - job_name: 'memory-engine'
+    static_configs:
+      - targets: ['memory-engine:8004']
+    metrics_path: '/metrics'
+
+  - job_name: 'safety-engine'
+    static_configs:
+      - targets: ['safety-engine:8005']
+    metrics_path: '/metrics'
+
+  - job_name: 'relationship-engine'
+    static_configs:
+      - targets: ['relationship-engine:8006']
+    metrics_path: '/metrics'
+
+  - job_name: 'emotion-engine'
+    static_configs:
+      - targets: ['emotion-engine:8007']
+    metrics_path: '/metrics'
+
+  - job_name: 'voice-engine'
+    static_configs:
+      - targets: ['voice-engine:8008']
+    metrics_path: '/metrics'
+
+  - job_name: 'proactive-engine'
+    static_configs:
+      - targets: ['proactive-engine:8009']
+    metrics_path: '/metrics'
+
+  - job_name: 'evaluation-engine'
+    static_configs:
+      - targets: ['evaluation-engine:8010']
+    metrics_path: '/metrics'
+
+  - job_name: 'companion-runtime'
+    static_configs:
+      - targets: ['companion-runtime:8011']
+    metrics_path: '/metrics'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Kafka Exporter
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+
+  # Node Exporter
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # Cadvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # Qdrant
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+    metrics_path: '/metrics'

@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: relationship-engine-config
+  namespace: relationship-engine
+  labels:
+    app.kubernetes.io/name: relationship-engine
+    app.kubernetes.io/part-of: pao-platform
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  PORT: "8001"
+  WORKER_CONCURRENCY: "2"
+  STATE_MACHINE_ENABLED: "true"
+  STATE_TRANSITION_COOLDOWN_HOURS: "24"
+  DIARY_AUTO_GENERATE: "true"
+  DIARY_GENERATION_INTERVAL_HOURS: "168"
+  DIMENSION_DECAY_ENABLED: "true"
+  DIMENSION_DECAY_RATE: "0.001"
+  MILESTONE_CHECK_INTERVAL_HOURS: "1"
+  POSTGRES_HOST: "postgresql"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "relationship_engine"
+  POSTGRES_USER: "postgres"
+  POSTGRES_POOL_SIZE: "10"
+  POSTGRES_MAX_OVERFLOW: "20"
+  POSTGRES_POOL_TIMEOUT: "30"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_PASSWORD: ""
+  KUZU_HOST: "kuzu"
+  KUZU_PORT: "8000"
+  KUZU_DATABASE: "relationship_graph"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
+  TRACING_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "0.1"

@@ -1,0 +1,53 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: emotion-engine-hpa
+  namespace: pao-emotion-engine
+  labels:
+    app.kubernetes.io/name: emotion-engine
+    app.kubernetes.io/part-of: pao-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: emotion-engine
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    # Custom metrics for queue depth (requires Prometheus Adapter)
+    - type: Pods
+      pods:
+        metric:
+          name: emotion_engine_queue_depth
+        target:
+          type: AverageValue
+          averageValue: "10"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 4
+          periodSeconds: 30
+      selectPolicy: Max

@@ -1,0 +1,95 @@
+[project]
+name = "pao-voice-engine"
+version = "0.1.0"
+description = "PAO Voice Engine - STT (Whisper), TTS (Kokoro/XTTS), Streaming, Interruption"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pao-shared",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "asyncpg>=0.29.0",
+    "redis>=5.0.0",
+    "httpx>=0.26.0",
+    "tenacity>=8.2.0",
+    "prometheus-client>=0.19.0",
+    "opentelemetry-api>=1.22.0",
+    "opentelemetry-sdk>=1.22.0",
+    "opentelemetry-exporter-otlp>=1.22.0",
+    "opentelemetry-instrumentation-fastapi>=0.43b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.43b0",
+    "opentelemetry-instrumentation-redis>=0.43b0",
+    "structlog>=24.1.0",
+    "python-json-logger>=2.0.0",
+    "python-multipart>=0.0.6",
+    "pyyaml>=6.0.0",
+    "numpy>=1.26.0",
+    "scipy>=1.11.0",
+    "soundfile>=0.12.0",
+    "librosa>=0.10.0",
+    "webrtcvad>=2.0.10",
+    "livekit-api>=1.0.0",
+    "livekit-server-sdk>=1.0.0",
+    "faster-whisper>=1.0.0",
+    "kokoro-onnx>=0.3.0",
+    "xtts-v2>=0.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.26.0",
+    "fakeredis>=2.20.0",
+    "testcontainers>=4.7.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.6.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.26.0",
+    "fakeredis>=2.20.0",
+    "testcontainers>=4.7.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.6.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["voice_engine*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "UP", "W", "C90", "ANN", "T20", "TID", "SIM", "ARG", "PTH", "ERA", "PL", "TRY"]
+ignore = ["E501", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204", "ANN401", "S101", "S311", "T201", "T203", "TRY003", "PLE1205", "PLW0602", "RUF012", "RUF100", "B008", "B009", "C901"]
+exclude = [".git", "__pycache__", "build", "dist", ".venv", "venv", "*.egg-info"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+strict = false
