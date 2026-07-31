@@ -29,11 +29,12 @@ export function camelToSnake(str: string): string {
 }
 
 export function snakeToCamel(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  return str.replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase());
 }
 
 export function maskEmail(email: string): string {
   const [local, domain] = email.split('@');
+  if (!local || !domain) return '***@***';
   if (local.length <= 2) return `${local[0]}***@${domain}`;
   return `${local[0]}${'*.'.repeat(local.length - 2)}${local[local.length - 1]}@${domain}`;
 }
@@ -150,7 +151,7 @@ export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Om
 }
 
 export function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
+  return JSON.parse(JSON.stringify(obj)) as T;
 }
 
 export function isEmpty(value: unknown): boolean {
@@ -270,8 +271,10 @@ export function generateRandomString(length: number, charset: string = 'ABCDEFGH
   let result = '';
   const randomValues = new Uint8Array(length);
   crypto.getRandomValues(randomValues);
-  for (let i = 0; i < length; i++) {
-    result += charset[randomValues[i] % charset.length];
+  for (const value of randomValues) {
+    const index = value % charset.length;
+    const char = charset.charAt(index);
+    result += char;
   }
   return result;
 }
@@ -340,7 +343,7 @@ export function getEnvBoolean(key: string, defaultValue?: boolean): boolean | un
 // Logging Utilities
 // ============================================================================
 
-export function createChildLogger(parentLogger: { child: (bindings: Record<string, unknown>) => any }, bindings: Record<string, unknown>) {
+export function createChildLogger(parentLogger: { child: (bindings: Record<string, unknown>) => unknown }, bindings: Record<string, unknown>) {
   return parentLogger.child(bindings);
 }
 
